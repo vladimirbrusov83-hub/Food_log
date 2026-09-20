@@ -1,85 +1,170 @@
 # FoodLog
 
-A food log for one person, used on a phone. Collapsible meals, a bundled
-library of 434 everyday foods, and a barcode scanner for everything on a
-package.
+A food log for one person, used on a phone.
 
-No accounts. One passcode, because the URL is public.
+Collapsible meals, 434 everyday foods already in it, and a barcode scanner for
+anything that comes in a package. No accounts, no calorie target, nothing that
+tells you how you did.
 
-## Run it
+- **Using it** — this page
+- **How it is put together** — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- **Changing the food list** — [`docs/FOOD-DATABASE.md`](docs/FOOD-DATABASE.md)
+- **Putting it online** — [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- **Notes for Claude** — [`CLAUDE.md`](CLAUDE.md)
+
+---
+
+## Using it
+
+### The day
+
+The app opens on today. `‹` and `›` move a day at a time; tapping the date in
+the middle jumps back to today.
+
+Under the date is the day's total: calories, then protein, carbs, fat and
+fiber. The thin bar above them is the split of those calories — blue protein,
+yellow carbs, orange fat — so you can see "mostly carbs today" without reading
+a number.
+
+Below that, one card per meal: **Breakfast, Lunch, Dinner, Snack**. A card
+collapsed still shows its calories and macros. Tap it to open.
+
+### Adding food
+
+Tap **+ Add food** inside a meal. The screen opens on **Recent** — the foods
+you log most, most-used first. After a week or two this is the whole app, and
+adding breakfast is two taps.
+
+Below that is a search box. It looks in two places and labels them:
+
+- **Library** — the 434 foods that ship with the app. Plain things: chicken
+  breast, oats, olive oil, bananas. Instant, works without a signal.
+- **Open Food Facts** — a free public database of packaged products. Slower,
+  and it doesn't have everything.
+
+Pick one and you land on the portion screen.
+
+### Portions
+
+Everything is stored in **grams**. Type a number, or tap a chip.
+
+The chips above the number pad are that food's known servings — `4 oz · 113 g`,
+`cup · 244 g`, `slice · 28 g`. They just fill in the grams for you; there is no
+second unit hiding anywhere. Under them, five quick amounts: 25, 50, 100, 150,
+200.
+
+The calories and macros update as you type. Then **Add to Breakfast**.
+
+### Scanning a barcode
+
+Tap **Scan** at the top right of the add screen, then **Start camera**. Point it
+at the barcode. It reads it and looks it up:
+
+- **Found** → straight to the portion screen, and the product is saved into your
+  own library. Next time you scan it, it doesn't go looking at all.
+- **Not found** → a short form. Copy the numbers from the label — *the per-100 g
+  column, not the per-serving one* — and hit Save. That barcode is yours from
+  then on.
+
+Open Food Facts is patchy on American shelves, so "not found" is normal, not a
+failure. There is also a **type the number** box under the camera for when a
+barcode is scuffed or the light is bad.
+
+**The camera only works over https.** On your phone that means the deployed
+site. It will not work from a file on your computer.
+
+### Extra meals
+
+**+ Add meal** at the bottom adds a meal to *that day only* — Pre-workout,
+Second dinner, whatever. It does not change any other day. There are shortcut
+chips for the common ones.
+
+An empty meal you added by mistake has a **Remove** next to its Add food link.
+Once there is food in it, Remove disappears — delete the entries first.
+
+### Changing or deleting an entry
+
+Tap the food inside a meal. A grams box and a **Remove** appear. Change the
+number and **Save**, or Remove it.
+
+### My foods
+
+The **Foods** tab is everything you scanned or typed in yourself — not the 434
+bundled ones, which would just be a catalogue to scroll. Tap one to fix its
+numbers or delete it.
+
+**Editing a food never changes anything you already logged.** Every entry keeps
+its own copy of the macros from the moment you saved it. If Chobani changes its
+recipe and you update the food, last Tuesday stays last Tuesday.
+
+### History
+
+Days you logged, newest first, with the calories. The bar next to each is scaled
+to your own biggest day — it is not a target, and it is not a verdict.
+
+---
+
+## Running it on your computer
+
+You need the Neon connection string and a passcode.
 
 ```bash
-cp .env.example .env.local     # fill in DATABASE_URL and APP_PASSCODE
+cp .env.example .env.local     # then fill in the two values
 npm install
-npm run db:push                # schema + the 434 seeded foods, idempotent
+npm run db:push                # creates the tables, loads the 434 foods
 npm run dev                    # http://localhost:3000
 ```
 
-**`npm run db:push` is a manual step before pushing code that reads a new
-column.** One Neon database serves local and production, and Vercel never runs
-it.
+`db:push` is safe to run as many times as you like — the second run adds
+nothing and overwrites nothing.
 
-## The parts worth knowing before editing
+To see the phone layout on a laptop: in Chrome press ⌥⌘I, then click the little
+phone icon and pick an iPhone.
 
-**Grams are canonical.** Every entry is stored as grams plus a *snapshot* of
-the food's macros per 100 g at the moment it was logged. Editing a food later
-never rewrites history — `app/foods/[foodId]` says so on screen, and the
-snapshot columns in `db/schema.sql` are what make it true. Serving presets
-("1 cup = 240 g") only fill in the grams field; nothing downstream knows about
-them.
+### The two settings
 
-**Fiber is nullable, and that is deliberate.** Open Food Facts frequently has
-no fiber figure, and writing 0 would invent fiber nobody ate. `sumMacros` in
-`lib/macros.ts` tracks `fiberComplete` alongside the total, and a day with an
-unknown in it renders `12g+` rather than a false exact number. Do not "fix" the
-nulls to zero.
+| Name | What it is |
+|---|---|
+| `DATABASE_URL` | Your Neon **pooled** connection string — the one with `-pooler` in the hostname. |
+| `APP_PASSCODE` | The passcode that opens the app. Change it and every browser is signed out. |
 
-**The day comes from the phone, never the server.** Vercel runs UTC, so a
-server-side `current_date` would file an 8 pm dinner under tomorrow. The URL
-carries `?d=YYYY-MM-DD`, `components/today-redirect.tsx` puts it there once
-from `new Date()`, and every action takes the day as a string.
+They live in `.env.local`, which is never committed. The repo is public; keep
+them out of it.
 
-**The four standard meals are virtual.** Breakfast / Lunch / Dinner / Snack are
-drawn from a constant in `lib/types.ts` whether or not a row exists. The row is
-created by `findOrCreateMeal` when something is first logged into it, so
-swiping through empty days writes nothing. "+ Add meal" adds a meal to *that
-day only* — there is no global meal list.
+---
 
-**The scanner needs a secure context.** `getUserMedia` does not run from a
-`file://` page. Test on `localhost` or on the deployed HTTPS URL. Chrome on
-Android has a native `BarcodeDetector`; Safari does not, so the page
-lazy-loads `@zxing/browser` only on the phones that need it.
+## Troubleshooting
 
-## The bundled food library
+**"DATABASE_URL is not set"** — `.env.local` is missing or empty. Copy
+`.env.example` over it and fill in both values.
 
-`db/usda-foods.json` is generated, checked in, and **never read into an AI
-context** — it is a data file. It comes from USDA FoodData Central SR Legacy
-(public domain, no API key), via:
+**The app asks for a passcode and won't take it** — `APP_PASSCODE` isn't set, or
+you changed it. Changing it signs out every browser on purpose.
 
-```bash
-curl -LO https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_json_2021-10-28.zip
-unzip FoodData_Central_sr_legacy_food_json_2021-10-28.zip
-node scripts/build-usda-foods.mjs path/to/FoodData_Central_sr_legacy_food_json_2021-10-28.json
-```
+**The scanner says the camera won't start** — it needs https. Use the deployed
+site on your phone, or `localhost` on your computer. A phone pointed at
+`http://192.168.x.x` will not work.
 
-The foods themselves are curated by hand in `db/food-list.mjs`. Auto-selecting
-by USDA category gives you ucuhuba butter and boiled breadfruit seeds — food,
-technically, useless in a tracker. Each row names the food the way you would
-search for it plus the terms that find it; a term starting with `!` must *not*
-appear, which is how "sour cream, cultured" avoids matching the imitation one.
-Anything that fails to resolve is printed by the build and left out rather than
-guessed at.
+**The scanner finds nothing on an American product** — normal. Use the manual
+form; it takes about twenty seconds and you only ever do it once per product.
 
-## Open Food Facts
+**A day's numbers look shifted by one day** — they shouldn't be; the app takes
+the date from your phone, not the server. If you ever see it, say so, because
+it means something real broke.
 
-Barcode lookups go to `world.openfoodfacts.org/api/v2/product/<code>.json`;
-text search goes to `search.openfoodfacts.org/search`. The old `cgi/search.pl`
-returns 503 and is not used. Coverage of US packaged goods is patchy, so "not
-found" is an ordinary outcome with its own form: type the per-100 g numbers
-once, and that barcode resolves from your own library forever after.
+**`npm run dev` throws `ENOENT ... _buildManifest.js.tmp`** — something deleted
+`.next` while the server was running. Stop it, `rm -rf .next`, start it again.
 
-## Stack
+---
 
-Next.js 15 App Router, React 19, Tailwind 4, Neon Postgres over
-`@neondatabase/serverless` with raw SQL and no ORM. Same shape as IronLogWeb
-and ClientProgram on purpose.
+## The shape of it
+
+Next.js 15 (App Router), React 19, Tailwind 4, and Neon Postgres over
+`@neondatabase/serverless` with plain SQL and no ORM. Deployed on Vercel. The
+same stack as IronLogWeb and ClientProgram, on purpose — three apps that work
+the same way are easier to keep than three that don't.
+
+One passcode, no accounts, because one person uses it and the URL is public.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the pieces fit and
+which decisions are load-bearing.
