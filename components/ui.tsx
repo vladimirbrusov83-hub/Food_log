@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export const inputClass =
-  "w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-ink " +
+  "w-full min-h-11 rounded-xl border border-line bg-surface px-3 py-2.5 text-ink " +
   "placeholder:text-ink-dim focus:border-accent focus:outline-none";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -62,10 +62,10 @@ export function AddSearch(
         <>
           <section>
             <h2 className="eyebrow mb-2 text-ink-dim">
-              My foods {pending && <span className="text-ink-dim">· searching</span>}
+              Library {pending && <span className="text-ink-dim">· searching</span>}
             </h2>
             {results.mine.length === 0 ? (
-              <p className="px-1 text-sm text-ink-dim">No match in the library.</p>
+              <p className="px-1 text-sm text-ink-dim">Nothing in the library matches.</p>
             ) : (
               <ul className="overflow-hidden rounded-2xl border border-line bg-surface">
                 {results.mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}
