@@ -91,23 +91,28 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
           stream.getTracks().forEach((t) => t.stop());
           video.srcObject = null;
         };
+        // Every animation frame would be ~60 detections a second and would
+        // cook the phone. A barcode does not move that fast.
         const tick = async () => {
           if (!live) return;
           try {
             const [hit] = await detector.detect(video);
             if (hit?.rawValue) { void handleCode(hit.rawValue); return; }
           } catch { /* a dropped frame is not a failure; try the next one */ }
-          requestAnimationFrame(tick);
+          if (live) setTimeout(tick, 150);
         };
-        requestAnimationFrame(tick);
+        setTimeout(tick, 150);
         return;
       }
 
       // Safari, and anything else without the native detector.
       const { BrowserMultiFormatReader } = await import("@zxing/browser");
       const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined, video,
+      // decodeFromVideoDevice(undefined, …) takes whatever camera the library
+      // picks first, which on a phone is usually the selfie one. Ask for the
+      // back camera by constraint instead; the controls object is the same.
+      const controls = await reader.decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } } }, video,
         (result) => { if (result) void handleCode(result.getText()); },
       );
       stopRef.current = () => controls.stop();

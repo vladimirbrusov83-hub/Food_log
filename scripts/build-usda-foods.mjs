@@ -37,7 +37,42 @@ const NUTRIENT = { kcal: 1008, kj: 1062, protein: 1003, carb: 1005, fat: 1004, f
 
 /** Portions worth offering as a tap-target. USDA also lists things like
  *  "1 cubic inch" and "1 oz, boneless, cooked" — noise on a phone. */
-const GOOD_PORTION = /^(1 |1\/2 )?(cup|tbsp|tablespoon|tsp|teaspoon|oz|slice|piece|medium|large|small|egg|fillet|breast|thigh|serving|scoop|clove|link|patty|bar|package)/i;
+const GOOD_PORTION = /^(\d+(\.\d+)? )?(cup|tbsp|tablespoon|tsp|teaspoon|slice|piece|medium|large|small|egg|fillet|breast|thigh|serving|scoop|clove|link|patty|bar|package)/i;
+
+const OUNCE = 28.3495;
+
+/**
+ * Turns one USDA portion into a chip.
+ *
+ * SR Legacy usually omits `amount`, so a 113 g portion arrives labelled just
+ * "oz" — which would put 113 g behind a chip that reads like one ounce. For a
+ * real weight unit the count is recoverable from the grams, so it is: 113 →
+ * "4 oz". When it does not divide cleanly the portion is dropped rather than
+ * shown with a label that lies. Volume units (cup, tbsp) are left alone —
+ * a cup of oil and a cup of flour weigh different amounts, and that is the
+ * portion's whole point.
+ */
+function label(p) {
+  const grams = Math.round(p.gramWeight * 10) / 10;
+  const unit = String(p.modifier ?? p.measureUnit?.name ?? "").trim();
+  // "cup, dry, yields" is a conversion, not a portion: the grams are what a cup
+  // of the dry food becomes once cooked, which is not what a chip should offer.
+  if (!unit || /^undetermined/i.test(unit) || /yields/i.test(unit)) return null;
+
+  const amount = typeof p.amount === "number" && p.amount > 0 ? p.amount : null;
+
+  if (/^oz\b/i.test(unit) && !/fl/i.test(unit)) {
+    const count = amount ?? grams / OUNCE;
+    const whole = Math.round(count);
+    // Within 5% of a whole number of ounces, or it is something else entirely.
+    if (whole < 1 || Math.abs(count - whole) / whole > 0.05) return null;
+    return { label: `${whole} oz`, grams };
+  }
+
+  const text = [amount && amount !== 1 ? amount : null, unit].filter(Boolean).join(" ");
+  if (!GOOD_PORTION.test(text)) return null;
+  return { label: text, grams };
+}
 
 const raw = JSON.parse(fs.readFileSync(SRC, "utf8"));
 const all = raw.SRLegacyFoods ?? raw.FoundationFoods ?? Object.values(raw)[0];
@@ -90,12 +125,8 @@ for (const [name, terms, categoryHint] of FOODS) {
 
   const servings = (food.foodPortions ?? [])
     .filter((p) => p.gramWeight > 0)
-    .map((p) => ({
-      label: [p.amount !== 1 ? p.amount : null, p.modifier ?? p.measureUnit?.name]
-        .filter(Boolean).join(" ").trim(),
-      grams: Math.round(p.gramWeight * 10) / 10,
-    }))
-    .filter((s) => s.label && GOOD_PORTION.test(s.label) && !/^undetermined/i.test(s.label))
+    .map((p) => label(p))
+    .filter((s) => s !== null)
     .slice(0, 3);
 
   const round = (n) => Math.round(n * 10) / 10;

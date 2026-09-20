@@ -1,22 +1,22 @@
 import Link from "next/link";
 import { removeMeal } from "./actions";
 import { getDay } from "@/lib/db";
-import { dayLabel, isDayString, shiftDay } from "@/lib/day";
+import { isDayString } from "@/lib/day";
 import { forGrams, g, kcal, sumMacros } from "@/lib/macros";
 import { MacroLine, MacroSplit } from "@/components/macro-bar";
 import { TodayRedirect } from "@/components/today-redirect";
+import { DayHeader } from "@/components/day-header";
 import { AddMeal, EntryRow } from "@/components/day-controls";
 import { Card } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function DayPage(
-  { searchParams }: { searchParams: Promise<{ d?: string; today?: string }> },
+  { searchParams }: { searchParams: Promise<{ d?: string }> },
 ) {
-  const { d, today } = await searchParams;
+  const { d } = await searchParams;
   // No date in the URL means the phone has not said what day it is yet.
   if (!isDayString(d)) return <TodayRedirect />;
-  const todayStr = isDayString(today) ? today : d;
 
   const meals = await getDay(d);
   const allEntries = meals.flatMap((m) => m.entries);
@@ -25,24 +25,7 @@ export default async function DayPage(
   return (
     <main className="mx-auto max-w-md px-4 pt-3">
       <header className="sticky top-0 z-30 -mx-4 bg-bg/95 px-4 pb-3 pt-2 backdrop-blur">
-        <div className="flex items-center justify-between">
-          <Link
-            href={`/?d=${shiftDay(d, -1)}&today=${todayStr}`}
-            aria-label="Previous day"
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-dim"
-          >‹</Link>
-
-          <Link href={`/?d=${todayStr}&today=${todayStr}`} className="text-center">
-            <h1 className="display text-2xl font-semibold">{dayLabel(d, todayStr)}</h1>
-            <p className="text-[0.6875rem] text-ink-dim">{d}</p>
-          </Link>
-
-          <Link
-            href={`/?d=${shiftDay(d, 1)}&today=${todayStr}`}
-            aria-label="Next day"
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-dim"
-          >›</Link>
-        </div>
+        <DayHeader day={d} />
 
         <div className="mt-2 space-y-1.5">
           <div className="flex items-baseline justify-between">
