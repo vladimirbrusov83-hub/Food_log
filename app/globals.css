@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Dark only, phone first. One person, one device, one lighting condition. */
+@theme {
+  --color-bg:        #0d0f0e;
+  --color-surface:   #161a18;
+  --color-line:      #262c29;
+  --color-ink:       #eef2ef;
+  --color-ink-dim:   #8b968f;
+  --color-accent:    #7ee08a;
+  --color-accent-dim:#2c4a33;
+  --color-protein:   #6fb6ff;
+  --color-carb:      #f0c05a;
+  --color-fat:       #f08a5a;
+  --color-fiber:     #b48cf0;
+  --color-bad:       #ff6b6b;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html { background: var(--color-bg); color-scheme: dark; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  /* Bottom nav is 64px; the safe area is on top of that on an iPhone. */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.display { font-family: var(--font-display); letter-spacing: -0.02em; }
+
+.eyebrow {
+  font-size: 0.6875rem; letter-spacing: 0.14em;
+  text-transform: uppercase; font-weight: 600;
+}
+
+/* Numbers in a column should line up, always. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Native <details> marker off; every summary here draws its own chevron. */
+summary::-webkit-details-marker { display: none; }
+summary { list-style: none; cursor: pointer; }
+details[open] > summary .chev { transform: rotate(90deg); }
+.chev { transition: transform 0.18s ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
