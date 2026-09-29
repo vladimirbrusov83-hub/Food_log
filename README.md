@@ -2,9 +2,9 @@
 
 A food log for one person, used on a phone.
 
-Collapsible meals, 434 everyday foods already in it, and a barcode scanner for
-anything that comes in a package. No accounts, no calorie target, nothing that
-tells you how you did.
+Meals, servings or grams, 434 everyday foods already in it, and a barcode scanner for
+anything that comes in a package. No accounts and no calorie target. The only
+targets are optional daily protein, carb and fat lines.
 
 - **Using it** — this page
 - **How it is put together** — [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -18,89 +18,88 @@ tells you how you did.
 
 ### The day
 
-The app opens on today. `‹` and `›` move a day at a time; tapping the date in
-the middle jumps back to today.
+The app opens on today. The week strip under the date moves between days (a
+dot marks days with food logged); `‹` and `›` jump a week; **Today** comes back.
 
-Under the date is the day's total: calories, then protein, carbs, fat and
-fiber. The thin bar above them is the split of those calories — blue protein,
-yellow carbs, orange fat — so you can see "mostly carbs today" without reading
-a number.
+The summary card shows the day's calories inside a ring. The ring is the split
+of those calories between protein (blue), carbs (amber) and fat (coral). It is
+not progress toward anything. Beside it, three lines fill toward your daily
+protein, carb and fat targets. Set them with **Targets**; leave one blank and
+its line just shows grams. There is no calorie target.
 
-Below that, one card per meal: **Breakfast, Lunch, Dinner, Snack**. A card
-collapsed still shows its calories and macros. Tap it to open.
+Below that, one card per meal: **Breakfast, Lunch, Dinner, Snack**. Tap the
+green **+** on a meal to add food to it.
 
 ### Adding food
 
-Tap **+ Add food** inside a meal. The screen opens on **Recent** — the foods
-you log most, most-used first. After a week or two this is the whole app, and
-adding breakfast is two taps.
+The add screen has a search box, **Scan barcode**, **Create food**, and two
+lists:
 
-Below that is a search box. It looks in two places and labels them:
+- **Recent**: the foods you log most, each with the amount you had last time.
+  Tap the row to choose an amount, or tap **+** to log last time's amount
+  straight away. A bar at the bottom confirms it, with **Undo**.
+- **My foods**: everything you created or scanned.
 
-- **Library** — the 434 foods that ship with the app. Plain things: chicken
-  breast, oats, olive oil, bananas. Instant, works without a signal.
-- **Open Food Facts** — a free public database of packaged products. Slower,
-  and it doesn't have everything.
+Search looks in the 434 bundled foods (**Library**) and in Open Food Facts
+(**Packaged foods**). If nothing fits, **Create "…" yourself** is under the
+results.
 
-Pick one and you land on the portion screen.
+### Portions: servings or grams
 
-### Portions
+Every food can be logged in **grams**. Foods with a serving size also have
+**Servings**: pick the serving (for example "1 slice · 20 g") and how many,
+with − / + or ½ 1 1½ 2 3. Switching between the two keeps the amount.
 
-Everything is stored in **grams**. Type a number, or tap a chip.
+There are no cups, spoons or ounces anywhere. The bundled foods' volume and
+imperial measures are hidden, so many plain foods (rice, oats) are grams only.
 
-The chips above the number pad are that food's known servings — `4 oz · 113 g`,
-`cup · 244 g`, `slice · 28 g`. They just fill in the grams for you; there is no
-second unit hiding anywhere. Under them, five quick amounts: 25, 50, 100, 150,
-200.
+The next time you open a food, it starts on the amount you used last time.
 
-The calories and macros update as you type. Then **Add to Breakfast**.
+### Creating a food
+
+**Create food** asks for a name, optionally a brand, and **serving sizes** such
+as "1 bar = 60 g". You can add several. Then the nutrition, **per 100 g** or
+**per serving**. American labels are per serving, so pick that and copy the
+label as printed. Switching between the two converts what you already typed.
+It is stored per 100 g either way.
 
 ### Scanning a barcode
 
-Tap **Scan** at the top right of the add screen, then **Start camera**. Point it
-at the barcode. It reads it and looks it up:
+Tap **Scan barcode**, then **Start camera**, and point it at the barcode:
 
-- **Found** → straight to the portion screen, and the product is saved into your
-  own library. Next time you scan it, it doesn't go looking at all.
-- **Not found** → a short form. Copy the numbers from the label — *the per-100 g
-  column, not the per-serving one* — and hit Save. That barcode is yours from
-  then on.
+- **Found**: straight to the portion screen. The product is saved into My foods,
+  so next time the scan doesn't look anything up.
+- **Not found**: the same form as Create food, with the barcode attached.
+  Copy the label once and that barcode is yours from then on.
 
-Open Food Facts is patchy on American shelves, so "not found" is normal, not a
-failure. There is also a **type the number** box under the camera for when a
-barcode is scuffed or the light is bad.
+Open Food Facts is patchy on American shelves, so "not found" is normal. There
+is also a box to type the number when a barcode is scuffed.
 
 **The camera only works over https.** On your phone that means the deployed
-site. It will not work from a file on your computer.
+site.
 
 ### Extra meals
 
-**+ Add meal** at the bottom adds a meal to *that day only* — Pre-workout,
-Second dinner, whatever. It does not change any other day. There are shortcut
-chips for the common ones.
-
-An empty meal you added by mistake has a **Remove** next to its Add food link.
-Once there is food in it, Remove disappears — delete the entries first.
+**Add a meal** at the bottom adds a meal to *that day only*. An empty one you
+added by mistake has a **Remove**.
 
 ### Changing or deleting an entry
 
-Tap the food inside a meal. A grams box and a **Remove** appear. Change the
-number and **Save**, or Remove it.
+Tap the food inside a meal. It opens the same servings/grams screen. Change it
+and **Save**, or **Remove from …**.
 
 ### My foods
 
-The **Foods** tab is everything you scanned or typed in yourself — not the 434
-bundled ones, which would just be a catalogue to scroll. Tap one to fix its
-numbers or delete it.
+The **My foods** tab lists everything you created or scanned, not the 434
+bundled ones. Tap one to change its numbers or serving sizes, or delete it.
 
 **Editing a food never changes anything you already logged.** Every entry keeps
-its own copy of the macros from the moment you saved it. If Chobani changes its
-recipe and you update the food, last Tuesday stays last Tuesday.
+its own copy of the macros from the moment you saved it.
 
 ### History
 
-Days you logged, newest first, with the calories. The bar next to each is scaled
-to your own biggest day — it is not a target, and it is not a verdict.
+Days you logged, newest first, each with calories, its protein/carb/fat split
+and grams. The card on top averages your last seven logged days.
 
 ---
 

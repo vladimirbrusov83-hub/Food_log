@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { adoptOffProduct, resolveBarcode } from "@/app/actions";
+import { adoptOffProduct, resolveBarcode, saveFood } from "@/app/actions";
+import { FoodForm } from "./food-form";
 import type { OffProduct } from "@/lib/off";
 import { Button, Card, inputClass } from "./ui";
 
@@ -137,7 +138,7 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-line bg-black">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-3xl bg-black shadow-card">
         <video
           ref={videoRef}
           playsInline
@@ -146,14 +147,14 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
           className="h-full w-full object-cover"
         />
         {/* A window to aim through. Barcodes are wide and short. */}
-        <div className="pointer-events-none absolute inset-x-6 top-1/2 h-28 -translate-y-1/2 rounded-xl border-2 border-accent/70" />
+        <div className="pointer-events-none absolute inset-x-6 top-1/2 h-28 -translate-y-1/2 rounded-2xl border-2 border-white/80" />
         {phase.k === "idle" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-bg/80 px-6 text-center text-sm text-ink-dim">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 px-6 text-center text-sm text-white/85">
             Point the camera at the barcode on the package.
           </div>
         )}
         {phase.k === "looking" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-bg/85 text-sm">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm text-white">
             Looking up {phase.barcode}…
           </div>
         )}
@@ -175,8 +176,8 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
         onSubmit={(e) => { e.preventDefault(); if (typed.trim()) void handleCode(typed.trim()); }}
         className="flex items-end gap-2"
       >
-        <label className="flex-1 text-xs text-ink-dim">
-          Or type the number under the barcode
+        <label className="flex-1 text-[0.8125rem] font-medium text-ink-dim">
+          <span className="px-1">Or type the number under the barcode</span>
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
@@ -194,64 +195,22 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
 /**
  * Not in Open Food Facts. This form is the whole point of the screen being
  * honest about coverage: it is as fast as the happy path, and it keeps the
- * barcode, so the same product is one tap next week.
+ * barcode, so the same product is one tap next week. It is the same food form
+ * as Create food, so the label can be copied per serving as printed.
  */
 function UnknownBarcode(
   { barcode, day, meal }: { barcode: string; day: string; meal: string },
 ) {
   return (
-    <form action={adoptOffProduct} className="space-y-4">
-      <Card className="p-4">
-        <p className="text-sm">
-          <span className="font-semibold">Not in the database.</span>{" "}
-          <span className="text-ink-dim">
-            Copy the numbers off the label — per 100 g, not per serving — and this
-            barcode is yours from now on.
-          </span>
+    <div className="space-y-4">
+      <Card className="p-5">
+        <p className="font-semibold">Not found</p>
+        <p className="mt-1 text-sm leading-relaxed text-ink-dim">
+          Copy the label once and this barcode is yours from now on.
         </p>
-        <p className="tnum mt-2 text-xs text-ink-dim">Barcode {barcode}</p>
+        <p className="tnum mt-2 text-xs text-ink-faint">Barcode {barcode}</p>
       </Card>
-
-      <input type="hidden" name="barcode" value={barcode} />
-      <input type="hidden" name="day" value={day} />
-      <input type="hidden" name="meal" value={meal} />
-
-      <input name="name" required placeholder="Food name" autoFocus className={inputClass} />
-      <input name="brand" placeholder="Brand (optional)" className={inputClass} />
-
-      <div className="grid grid-cols-2 gap-3">
-        <Field name="kcal" label="Calories / 100 g" required />
-        <Field name="protein" label="Protein g / 100 g" required />
-        <Field name="carb" label="Carbs g / 100 g" required />
-        <Field name="fat" label="Fat g / 100 g" required />
-        <Field name="fiber" label="Fiber g / 100 g" hint="blank if not listed" />
-        <Field name="servingGrams" label="1 serving = g" hint="optional" />
-      </div>
-
-      <Button type="submit" variant="primary" className="h-14 w-full text-base">
-        Save and add
-      </Button>
-    </form>
-  );
-}
-
-function Field(
-  { name, label, required, hint }:
-  { name: string; label: string; required?: boolean; hint?: string },
-) {
-  return (
-    <label className="text-xs text-ink-dim">
-      {label}
-      <input
-        name={name}
-        type="number"
-        inputMode="decimal"
-        step="any"
-        min="0"
-        required={required}
-        className={`${inputClass} tnum mt-1`}
-      />
-      {hint && <span className="mt-1 block text-[0.625rem]">{hint}</span>}
-    </label>
+      <FoodForm action={saveFood} hidden={{ barcode, day, meal }} submitLabel="Save and choose amount" />
+    </div>
   );
 }

@@ -21,7 +21,13 @@ of things already decided and traps that look like bugs.
   on 2026-09-29 he asked for protein/carb/fat lines that fill toward daily
   targets he sets (`/targets`, one-row `targets` table, blank = no target).
   Still no calorie target, no "you have X left", no streaks, no suggestions.
-  The history bar is relative to his own biggest day, not a target.
+  The ring on the day screen is the calorie *split* of P/C/F, not progress.
+- **Servings or grams only.** No cups, spoons, ounces. `lib/servings.ts` filters
+  them at read time (`withServings`); do not show raw USDA labels anywhere.
+  Entries keep `serving_label`/`serving_qty` as a snapshot; grams stay canonical.
+- **Light theme** (since 2026-09-29, his choice over a new dark one). Tokens are
+  OKLCH in `app/globals.css`; one font, Geist. Macro colours are fixed:
+  protein blue, carbs amber, fat coral, fiber violet.
 
 ## Traps
 

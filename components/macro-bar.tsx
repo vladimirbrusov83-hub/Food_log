@@ -1,85 +1,120 @@
+import Link from "next/link";
 import { fiberLabel, g, kcal, type MacroTotal } from "@/lib/macros";
 import type { Macros } from "@/lib/types";
 import type { Targets } from "@/lib/db";
-import Link from "next/link";
+import { Icon } from "./ui";
 
-/** The four numbers, in the four colours they keep everywhere in the app. */
-export function MacroLine(
-  { total, fiberComplete, size = "sm" }:
-  { total: MacroTotal; fiberComplete: boolean; size?: "sm" | "lg" },
+export const MACROS = [
+  // `ink` is the same hue dark enough to read as text on white.
+  { key: "protein", label: "Protein", short: "P", color: "var(--color-protein)", ink: "oklch(0.5 0.15 255)", kcalPerG: 4 },
+  { key: "carb", label: "Carbs", short: "C", color: "var(--color-carb)", ink: "oklch(0.58 0.13 70)", kcalPerG: 4 },
+  { key: "fat", label: "Fat", short: "F", color: "var(--color-fat)", ink: "oklch(0.55 0.16 35)", kcalPerG: 9 },
+] as const;
+
+/**
+ * Where the calories came from, as a ring: protein, carbs and fat by their
+ * share of the energy. It is a split, not progress — there is no calorie
+ * target in this app. Empty day, empty grey ring.
+ */
+export function MacroDonut(
+  { total, size = 112, stroke = 12, children }:
+  { total: Macros; size?: number; stroke?: number; children?: React.ReactNode },
 ) {
-  const cls = size === "lg" ? "text-sm" : "text-xs";
-  return (
-    <div className={`tnum flex flex-wrap items-baseline gap-x-3 gap-y-1 ${cls} text-ink-dim`}>
-      <span className="text-protein">P {g(total.protein)}g</span>
-      <span className="text-carb">C {g(total.carb)}g</span>
-      <span className="text-fat">F {g(total.fat)}g</span>
-      <span className="text-fiber">Fib {fiberLabel(total.fiber, fiberComplete)}</span>
-    </div>
-  );
-}
-
-/** The proportions of the day, by calories. Decoration with a job: at a glance
- *  it says "mostly carbs today" without him reading a single number. */
-export function MacroSplit({ total }: { total: Macros }) {
-  const parts = [
-    { key: "protein", kcal: total.protein * 4, color: "var(--color-protein)" },
-    { key: "carb", kcal: total.carb * 4, color: "var(--color-carb)" },
-    { key: "fat", kcal: total.fat * 9, color: "var(--color-fat)" },
-  ];
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const parts = MACROS.map((m) => ({ ...m, kcal: total[m.key] * m.kcalPerG }));
   const sum = parts.reduce((n, p) => n + p.kcal, 0);
-  if (sum <= 0) return <div className="h-1.5 rounded-full bg-line" />;
+  // A hairline of space between segments, so three colours read as three.
+  const gap = sum > 0 && parts.filter((p) => p.kcal > 0).length > 1 ? 3 : 0;
+  let offset = 0;
+
   return (
-    <div className="flex h-1.5 overflow-hidden rounded-full bg-line">
-      {parts.map((p) => (
-        <div key={p.key} style={{ width: `${(p.kcal / sum) * 100}%`, background: p.color }} />
-      ))}
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-sunken)" strokeWidth={stroke} />
+        {sum > 0 && parts.map((p) => {
+          const len = (p.kcal / sum) * c;
+          const seg = Math.max(0, len - gap);
+          const el = seg > 0 && (
+            <circle
+              key={p.key}
+              cx={size / 2} cy={size / 2} r={r} fill="none"
+              stroke={p.color} strokeWidth={stroke} strokeLinecap="butt"
+              strokeDasharray={`${seg} ${c - seg}`}
+              strokeDashoffset={-offset}
+              className="draw-in"
+              style={{ ["--c" as string]: `${c}` }}
+            />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
   );
 }
 
-/** Protein, carbs and fat as lines that fill toward his daily targets. A macro
- *  with no target set shows its grams over an empty track. Past the target the
- *  line stays full; the number says by how much. */
+/**
+ * Protein, carbs and fat as lines that fill toward his daily targets. A macro
+ * with no target shows its grams over an empty track. Past the target the line
+ * stays full and the number says by how much.
+ */
 export function MacroTargets(
-  { total, targets, fiberComplete, day }:
-  { total: MacroTotal; targets: Targets; fiberComplete: boolean; day: string },
+  { total, targets, day }: { total: MacroTotal; targets: Targets; day: string },
 ) {
-  const rows = [
-    { key: "protein", label: "Protein", value: total.protein, target: targets.protein, color: "var(--color-protein)" },
-    { key: "carb", label: "Carbs", value: total.carb, target: targets.carb, color: "var(--color-carb)" },
-    { key: "fat", label: "Fat", value: total.fat, target: targets.fat, color: "var(--color-fat)" },
-  ];
-  const anyTarget = rows.some((r) => r.target);
+  const anyTarget = MACROS.some((m) => targets[m.key]);
   return (
-    <div className="space-y-2">
-      {rows.map((r) => {
-        const pct = r.target ? Math.min(1, r.value / r.target) : 0;
+    <div className="space-y-3">
+      {MACROS.map((m) => {
+        const value = total[m.key];
+        const target = targets[m.key];
+        const pct = target ? Math.min(1, value / target) : 0;
         return (
-          <div key={r.key} className="grid grid-cols-[3.75rem_1fr_auto] items-center gap-2.5">
-            <span className="text-xs font-semibold" style={{ color: r.color }}>{r.label}</span>
-            <div className="h-2 overflow-hidden rounded-full bg-line">
+          <div key={m.key}>
+            <div className="mb-1.5 flex items-baseline justify-between text-[0.8125rem]">
+              <span className="flex items-center gap-2 font-medium">
+                <span className="h-2 w-2 rounded-full" style={{ background: m.color }} />
+                {m.label}
+              </span>
+              <span className="tnum text-ink-dim">
+                <span className="font-semibold text-ink">{g(value)}</span>
+                {target ? ` / ${g(target)} g` : " g"}
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-sunken">
               {pct > 0 && (
-                <div
-                  className="fill-in h-full rounded-full"
-                  style={{ width: `${pct * 100}%`, background: r.color }}
-                />
+                <div className="fill-in h-full rounded-full" style={{ width: `${pct * 100}%`, background: m.color }} />
               )}
             </div>
-            <span className="tnum min-w-[4.75rem] text-right text-xs text-ink-dim">
-              <span className="font-semibold text-ink">{g(r.value)}</span>
-              {r.target ? ` / ${g(r.target)}g` : "g"}
-            </span>
           </div>
         );
       })}
-      <div className="flex items-center justify-between text-xs">
-        <span className="tnum text-fiber">Fib {fiberLabel(total.fiber, fiberComplete)}</span>
-        <Link href={`/targets?d=${day}`} className="-my-3 flex min-h-11 items-center px-1 text-ink-dim">
-          {anyTarget ? "Targets ›" : "Set targets ›"}
+      <div className="flex items-center justify-between pt-0.5 text-[0.8125rem]">
+        <span className="tnum flex items-center gap-2 text-ink-dim">
+          <span className="h-2 w-2 rounded-full bg-fiber" />
+          Fiber <span className="font-semibold text-ink">{fiberLabel(total.fiber, total.fiberComplete)}</span>
+        </span>
+        <Link href={`/targets?d=${day}`}
+              className="press -my-2 -mr-2 flex min-h-11 items-center gap-1 rounded-full px-2 font-medium text-accent-ink">
+          <Icon name="target" className="h-4 w-4" />
+          {anyTarget ? "Targets" : "Set targets"}
         </Link>
       </div>
     </div>
+  );
+}
+
+/** "24p · 30c · 8f", with the letters in their colours. For rows and cards. */
+export function MacroInline({ m, className = "" }: { m: Macros; className?: string }) {
+  return (
+    <span className={`tnum inline-flex gap-2 text-xs text-ink-dim ${className}`}>
+      {MACROS.map((x) => (
+        <span key={x.key}>
+          <span className="font-semibold" style={{ color: x.ink }}>{x.short}</span> {g(m[x.key])}
+        </span>
+      ))}
+    </span>
   );
 }
 

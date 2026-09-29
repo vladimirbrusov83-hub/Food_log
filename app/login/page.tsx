@@ -30,25 +30,27 @@ export default async function LoginPage({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6">
-      <div className="rise">
-        <p className="eyebrow text-accent">Food log</p>
-        <h1 className="display mt-1 text-6xl font-semibold">FoodLog</h1>
-        <p className="mt-2 text-sm text-ink-dim">
-          What you ate, in grams. Enter the passcode to continue.
-        </p>
+      <div>
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-float">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-7 w-7" aria-hidden>
+            <path d="M7 3v7a3 3 0 0 0 3 3v8M10 3v6M4 3v6M17 3c-2 2-2.5 5-2.5 8H19c0-3-.5-6-2-8zM17 11v10" />
+          </svg>
+        </span>
+        <h1 className="mt-6 text-[2.5rem] font-bold leading-tight tracking-[-0.03em]">FoodLog</h1>
+        <p className="mt-1 text-[0.9375rem] text-ink-dim">Enter the passcode to continue.</p>
       </div>
 
-      <form action={signIn} className="rise rise-2 mt-8 space-y-3">
+      <form action={signIn} className="mt-8 space-y-3">
         <input
           name="passcode"
           type="password"
           autoFocus
           autoComplete="current-password"
           placeholder="Passcode"
-          className={`${inputClass} min-h-12`}
+          className={`${inputClass} bg-surface shadow-card`}
         />
         {wrong && <p className="text-sm text-bad">That passcode is not right.</p>}
-        <Button type="submit" variant="primary" className="w-full min-h-12">Enter</Button>
+        <Button type="submit" variant="primary" className="w-full min-h-14">Continue</Button>
       </form>
     </main>
   );

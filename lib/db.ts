@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
-import { STANDARD_MEALS, type Entry, type Food, type Meal, type Serving } from "./types";
+import { STANDARD_MEALS, type Entry, type Food, type Meal, type Portion, type RecentFood, type Serving } from "./types";
+import { usableServings } from "./servings";
 
 type Neon = ReturnType<typeof neon>;
 let client: Neon | undefined;
@@ -48,7 +49,8 @@ async function withServings(rows: FoodRow[]): Promise<Food[]> {
     list.push({ id: Number(s.id), label: s.label, grams: s.grams });
     byFood.set(Number(s.food_id), list);
   }
-  return rows.map((r) => toFood(r, byFood.get(Number(r.id)) ?? []));
+  // No cups, spoons or ounces reach the app: see lib/servings.ts.
+  return rows.map((r) => toFood(r, usableServings(byFood.get(Number(r.id)) ?? [])));
 }
 
 /* ------------------------------------------------------------------- day */
@@ -62,6 +64,7 @@ export async function getDay(day: string): Promise<Meal[]> {
   const rows = (await sql`
     SELECT m.id, m.name, m.sort_index,
            e.id AS entry_id, e.food_id, e.name AS entry_name, e.brand, e.grams,
+           e.serving_label, e.serving_qty,
            e.kcal_100g, e.protein_100g, e.carb_100g, e.fat_100g, e.fiber_100g
       FROM day_meals m
       LEFT JOIN entries e ON e.day_meal_id = m.id
@@ -75,6 +78,7 @@ export async function getDay(day: string): Promise<Meal[]> {
   for (const r of rows as unknown as {
     id: number; name: string; sort_index: number; entry_id: number | null;
     food_id: number | null; entry_name: string; brand: string | null; grams: number;
+    serving_label: string | null; serving_qty: number | null;
     kcal_100g: number; protein_100g: number; carb_100g: number;
     fat_100g: number; fiber_100g: number | null;
   }[]) {
@@ -85,6 +89,7 @@ export async function getDay(day: string): Promise<Meal[]> {
       meal.entries.push({
         id: Number(r.entry_id), foodId: r.food_id === null ? null : Number(r.food_id),
         name: r.entry_name, brand: r.brand, grams: r.grams,
+        servingLabel: r.serving_label, servingQty: r.serving_qty,
         kcal: r.kcal_100g, protein: r.protein_100g, carb: r.carb_100g,
         fat: r.fat_100g, fiber: r.fiber_100g,
       });
@@ -107,18 +112,64 @@ export async function findOrCreateMeal(day: string, name: string): Promise<numbe
 
 export async function addEntry(
   day: string, mealName: string, food: Omit<Entry, "id">,
-): Promise<void> {
+): Promise<number> {
   const mealId = await findOrCreateMeal(day, mealName);
-  await sql`
+  const [row] = (await sql`
     INSERT INTO entries
-      (day_meal_id, food_id, name, brand, grams,
+      (day_meal_id, food_id, name, brand, grams, serving_label, serving_qty,
        kcal_100g, protein_100g, carb_100g, fat_100g, fiber_100g)
     VALUES (${mealId}, ${food.foodId}, ${food.name}, ${food.brand}, ${food.grams},
-            ${food.kcal}, ${food.protein}, ${food.carb}, ${food.fat}, ${food.fiber})`;
+            ${food.servingLabel}, ${food.servingQty},
+            ${food.kcal}, ${food.protein}, ${food.carb}, ${food.fat}, ${food.fiber})
+    RETURNING id`) as { id: number }[];
+  return Number(row.id);
 }
 
-export async function updateEntryGrams(entryId: number, grams: number): Promise<void> {
-  await sql`UPDATE entries SET grams = ${grams} WHERE id = ${entryId}`;
+export async function updateEntryPortion(entryId: number, p: Portion): Promise<void> {
+  await sql`
+    UPDATE entries SET grams = ${p.grams}, serving_label = ${p.servingLabel},
+                       serving_qty = ${p.servingQty}
+     WHERE id = ${entryId}`;
+}
+
+/** One entry, with the day and meal it sits in — the edit screen. */
+export async function getEntry(entryId: number): Promise<(Entry & { day: string; meal: string }) | null> {
+  const rows = (await sql`
+    SELECT e.*, to_char(m.day, 'YYYY-MM-DD') AS day, m.name AS meal
+      FROM entries e JOIN day_meals m ON m.id = e.day_meal_id
+     WHERE e.id = ${entryId}`) as Record<string, never>[];
+  const r = rows[0] as unknown as {
+    id: number; food_id: number | null; name: string; brand: string | null; grams: number;
+    serving_label: string | null; serving_qty: number | null; day: string; meal: string;
+    kcal_100g: number; protein_100g: number; carb_100g: number; fat_100g: number; fiber_100g: number | null;
+  } | undefined;
+  if (!r) return null;
+  return {
+    id: Number(r.id), foodId: r.food_id === null ? null : Number(r.food_id),
+    name: r.name, brand: r.brand, grams: r.grams,
+    servingLabel: r.serving_label, servingQty: r.serving_qty,
+    kcal: r.kcal_100g, protein: r.protein_100g, carb: r.carb_100g,
+    fat: r.fat_100g, fiber: r.fiber_100g, day: r.day, meal: r.meal,
+  };
+}
+
+/** How he portioned this food the last time he logged it, if ever. */
+export async function getLastPortion(foodId: number): Promise<Portion | null> {
+  const rows = (await sql`
+    SELECT grams, serving_label, serving_qty FROM entries
+     WHERE food_id = ${foodId} ORDER BY created_at DESC, id DESC LIMIT 1`) as
+    { grams: number; serving_label: string | null; serving_qty: number | null }[];
+  const r = rows[0];
+  return r ? { grams: r.grams, servingLabel: r.serving_label, servingQty: r.serving_qty } : null;
+}
+
+/** Which of these days have anything logged — the dots on the week strip. */
+export async function getLoggedDaysBetween(from: string, to: string): Promise<string[]> {
+  const rows = (await sql`
+    SELECT DISTINCT to_char(m.day, 'YYYY-MM-DD') AS day
+      FROM day_meals m JOIN entries e ON e.day_meal_id = m.id
+     WHERE m.day BETWEEN ${from} AND ${to}`) as { day: string }[];
+  return rows.map((r) => r.day);
 }
 
 export async function deleteEntry(entryId: number): Promise<void> {
@@ -130,27 +181,45 @@ export async function deleteMeal(mealId: number): Promise<void> {
 }
 
 /** Days that have anything logged, newest first — the History screen. */
-export async function getLoggedDays(limit = 60): Promise<{ day: string; kcal: number }[]> {
+export type DaySummary = { day: string; kcal: number; protein: number; carb: number; fat: number };
+
+export async function getLoggedDays(limit = 60): Promise<DaySummary[]> {
   const rows = (await sql`
     SELECT to_char(m.day, 'YYYY-MM-DD') AS day,
-           round(sum(e.grams * e.kcal_100g / 100))::int AS kcal
+           sum(e.grams * e.kcal_100g / 100)    AS kcal,
+           sum(e.grams * e.protein_100g / 100) AS protein,
+           sum(e.grams * e.carb_100g / 100)    AS carb,
+           sum(e.grams * e.fat_100g / 100)     AS fat
       FROM day_meals m JOIN entries e ON e.day_meal_id = m.id
-     GROUP BY m.day ORDER BY m.day DESC LIMIT ${limit}`) as { day: string; kcal: number }[];
-  return rows.map((r) => ({ day: r.day, kcal: Number(r.kcal) }));
+     GROUP BY m.day ORDER BY m.day DESC LIMIT ${limit}`) as Record<string, string>[];
+  return rows.map((r) => ({
+    day: r.day, kcal: Number(r.kcal), protein: Number(r.protein),
+    carb: Number(r.carb), fat: Number(r.fat),
+  }));
 }
 
 /* ----------------------------------------------------------------- foods */
 
 /** Most-logged first, then most recent — what the add screen opens on. */
-export async function getRecentFoods(limit = 20): Promise<Food[]> {
+export async function getRecentFoods(limit = 20): Promise<RecentFood[]> {
   const rows = (await sql`
-    SELECT f.*, count(e.id) AS uses, max(e.created_at) AS last_used
-      FROM entries e JOIN foods f ON f.id = e.food_id
-     WHERE e.created_at > now() - interval '60 days'
-     GROUP BY f.id
-     ORDER BY count(e.id) DESC, max(e.created_at) DESC
-     LIMIT ${limit}`) as FoodRow[];
-  return withServings(rows);
+    SELECT f.*, last.grams AS last_grams, last.serving_label AS last_label,
+           last.serving_qty AS last_qty
+      FROM (SELECT food_id, count(*) AS uses, max(created_at) AS last_used
+              FROM entries
+             WHERE food_id IS NOT NULL AND created_at > now() - interval '60 days'
+             GROUP BY food_id) u
+      JOIN foods f ON f.id = u.food_id
+      CROSS JOIN LATERAL (
+        SELECT grams, serving_label, serving_qty FROM entries
+         WHERE food_id = u.food_id ORDER BY created_at DESC, id DESC LIMIT 1) last
+     ORDER BY u.uses DESC, u.last_used DESC
+     LIMIT ${limit}`) as (FoodRow & { last_grams: number; last_label: string | null; last_qty: number | null })[];
+  const foods = await withServings(rows);
+  return foods.map((f, i) => ({
+    ...f,
+    last: { grams: rows[i].last_grams, servingLabel: rows[i].last_label, servingQty: rows[i].last_qty },
+  }));
 }
 
 export async function searchFoods(query: string, limit = 40): Promise<Food[]> {
@@ -211,7 +280,15 @@ export async function createFood(f: {
 export async function updateFood(id: number, f: {
   name: string; brand: string | null;
   kcal: number; protein: number; carb: number; fat: number; fiber: number | null;
+  servings: { label: string; grams: number }[];
 }): Promise<void> {
+  // Entries keep their own serving label, so replacing the list rewrites nothing logged.
+  await sql`DELETE FROM food_servings WHERE food_id = ${id}`;
+  for (const [i, s] of f.servings.entries()) {
+    await sql`
+      INSERT INTO food_servings (food_id, label, grams, position)
+      VALUES (${id}, ${s.label}, ${s.grams}, ${i})`;
+  }
   // Entries carry their own snapshot, so this never rewrites what was logged.
   await sql`
     UPDATE foods

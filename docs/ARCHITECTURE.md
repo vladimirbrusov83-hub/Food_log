@@ -82,12 +82,16 @@ adds a meal to *that day only* — there is no global meal list to maintain.
 
 ## And one product rule
 
-**No goals, no targets, no suggestions.** No calorie target, no macro goal bars,
-no "you have 400 left", no streaks, no weekly averages presented as a grade.
+**Macro targets, and nothing more.** At first there were no targets at all. On
+2026-09-29 he asked for protein/carb/fat lines that fill toward daily targets he
+sets (`/targets`, one-row `targets` table, blank = no target). There is still no
+calorie target, no "you have 400 left", no streaks and no suggestions. The ring
+on the day screen is the calorie *split*, not progress.
 
-This was asked for explicitly and matches the line held in IronLogWeb and
-ClientProgram. The History bar is scaled to the biggest day logged, which is why
-it is a comparison and not a verdict.
+**Servings or grams, nothing else.** `lib/servings.ts` hides volume and imperial
+measures (cup, tbsp, tsp, oz, lb, package) and tidies the rest ("1 slice").
+Entries store grams as always, plus `serving_label`/`serving_qty` as a snapshot
+for display and for re-opening the entry.
 
 ---
 
@@ -121,16 +125,20 @@ Three indexes carry weight:
 
 | Path | What it does |
 |---|---|
-| `app/page.tsx` | The day. Meals, totals, collapsible cards. |
+| `app/page.tsx` | The day. Week strip, summary card, meal cards. |
+| `app/entry/[entryId]/page.tsx` | Change or remove one logged entry. |
+| `app/targets/page.tsx` | Daily protein/carb/fat targets. |
 | `app/actions.ts` | Every write. Server actions; each takes `day` as a string. |
-| `app/add/page.tsx` | Recent foods, search, the Scan button. |
-| `app/add/[foodId]/page.tsx` | The portion step. |
+| `app/add/page.tsx` | Search, Scan, Create, Recent (with quick +) and My foods. |
+| `app/add/[foodId]/page.tsx` | The portion step (`components/portion-form.tsx`). |
 | `app/scan/page.tsx` | Wrapper around the scanner. |
 | `app/foods/**` | My foods: list, new, edit. |
 | `app/history/page.tsx` | Days logged, newest first. |
 | `app/login/page.tsx` | The passcode form. |
 | `lib/db.ts` | Every query. Raw SQL, no ORM. |
 | `lib/macros.ts` | Portion arithmetic and the fiber-total rule. |
+| `lib/servings.ts` | Which serving sizes are shown, and how a portion reads. |
+| `components/food-form.tsx` | Create/edit food and the scanner's not-found form. |
 | `lib/day.ts` | Local-time date helpers. |
 | `lib/off.ts` | Open Food Facts client. |
 | `lib/auth.ts`, `middleware.ts` | The passcode gate (copied from IronLogWeb). |

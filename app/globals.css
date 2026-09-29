@@ -1,55 +1,77 @@
 @import "tailwindcss";
 
-/* Dark only, phone first. One person, one device, one lighting condition. */
+/*
+ * Light, phone first. He logs in daylight: at the counter, at the gym, at a
+ * restaurant table. One neutral family with a faint green cast, white cards,
+ * one green for actions, and four macro colours that mean the same thing on
+ * every screen.
+ */
 @theme {
-  --color-bg:        #0d0f0e;
-  --color-surface:   #161a18;
-  --color-line:      #262c29;
-  --color-ink:       #eef2ef;
-  --color-ink-dim:   #8b968f;
-  --color-accent:    #7ee08a;
-  --color-accent-dim:#2c4a33;
-  --color-protein:   #6fb6ff;
-  --color-carb:      #f0c05a;
-  --color-fat:       #f08a5a;
-  --color-fiber:     #b48cf0;
-  --color-bad:       #ff6b6b;
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-bg:          oklch(0.972 0.004 165);
+  --color-surface:     oklch(1 0 0);
+  --color-sunken:      oklch(0.952 0.006 165);
+  --color-line:        oklch(0.905 0.007 165);
+  --color-ink:         oklch(0.21 0.014 170);
+  --color-ink-dim:     oklch(0.48 0.013 170);
+  --color-ink-faint:   oklch(0.62 0.01 170);
+  --color-accent:      oklch(0.5 0.12 158);
+  --color-accent-ink:  oklch(0.4 0.1 158);
+  --color-accent-soft: oklch(0.945 0.035 158);
+  --color-protein:     oklch(0.6 0.15 255);
+  --color-carb:        oklch(0.76 0.14 75);
+  --color-fat:         oklch(0.66 0.16 35);
+  --color-fiber:       oklch(0.58 0.14 305);
+  --color-bad:         oklch(0.55 0.19 25);
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --shadow-card: 0 1px 2px oklch(0.2 0.02 170 / 0.05), 0 4px 16px oklch(0.2 0.02 170 / 0.04);
+  --shadow-float: 0 8px 28px oklch(0.2 0.02 170 / 0.14), 0 2px 6px oklch(0.2 0.02 170 / 0.08);
 }
 
-html { background: var(--color-bg); color-scheme: dark; }
+html { background: var(--color-bg); color-scheme: light; }
 
 body {
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
   /* Bottom nav is 64px; the safe area is on top of that on an iPhone. */
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
 }
 
-.display { font-family: var(--font-display); letter-spacing: -0.02em; }
-
-.eyebrow {
-  font-size: 0.6875rem; letter-spacing: 0.14em;
-  text-transform: uppercase; font-weight: 600;
-}
+h1, h2, h3 { text-wrap: balance; letter-spacing: -0.02em; }
 
 /* Numbers in a column should line up, always. */
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* Native <details> marker off; every summary here draws its own chevron. */
-summary::-webkit-details-marker { display: none; }
-summary { list-style: none; cursor: pointer; }
-details[open] > summary .chev { transform: rotate(90deg); }
-.chev { transition: transform 0.18s ease; }
+/* Anything pressable gives a little under the thumb. */
+.press { transition: transform 160ms cubic-bezier(0.25, 1, 0.5, 1), background-color 160ms ease; }
+.press:active { transform: scale(0.97); }
+
+/* Number inputs: no spinners; the steppers and keypad are the controls. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
 
 /* Macro lines grow from the left each time the day renders, so logging a food
    visibly fills them in. */
 @keyframes fill-in { from { transform: scaleX(0); } }
-.fill-in { transform-origin: left; animation: fill-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fill-in { transform-origin: left; animation: fill-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* The donut draws itself the same way. */
+@keyframes draw-in { from { stroke-dasharray: 0 var(--c); } }
+.draw-in { animation: draw-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* The "Added" toast: in, hold, out. It carries Undo, so it stays a while. */
+@keyframes toast {
+  0% { opacity: 0; transform: translateY(12px); }
+  6%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(12px); visibility: hidden; }
+}
+.toast { animation: toast 6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .toast { animation: none; }
 }

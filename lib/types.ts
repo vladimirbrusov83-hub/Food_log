@@ -25,7 +25,16 @@ export type Entry = Macros & {
   name: string;
   brand: string | null;
   grams: number;
+  /** "1 slice" and 2 when logged as servings; both null when logged in grams. */
+  servingLabel: string | null;
+  servingQty: number | null;
 };
+
+/** How much of a food: grams always, plus the serving it was picked as, if any. */
+export type Portion = { grams: number; servingLabel: string | null; servingQty: number | null };
+
+/** A food on the add screen, with how he logged it last time. */
+export type RecentFood = Food & { last: Portion };
 
 export type Meal = {
   /** null until something is logged into it — the four standards are virtual. */

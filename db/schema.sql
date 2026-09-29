@@ -83,3 +83,9 @@ CREATE TABLE IF NOT EXISTS targets (
   carb    real,
   fat     real
 );
+
+-- How an entry was portioned, for display and for re-opening it: "2 × 1 slice".
+-- A snapshot like the macros; grams stay the canonical amount. Null = logged in grams.
+-- Added 2026-09-29 with the serving/grams portion picker.
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS serving_label text;
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS serving_qty   real

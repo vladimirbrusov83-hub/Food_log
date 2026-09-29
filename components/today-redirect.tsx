@@ -14,5 +14,5 @@ export function TodayRedirect() {
   useEffect(() => {
     router.replace(`/?d=${toDayString(new Date())}`);
   }, [router]);
-  return <p className="p-8 text-center text-sm text-ink-dim">One moment…</p>;
+  return <p className="p-10 text-center text-sm text-ink-dim">One moment…</p>;
 }

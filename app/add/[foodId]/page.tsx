@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getFood } from "@/lib/db";
+import { logFood } from "@/app/actions";
+import { getFood, getLastPortion } from "@/lib/db";
 import { isDayString } from "@/lib/day";
 import { PortionForm } from "@/components/portion-form";
-import { Empty } from "@/components/ui";
+import { Empty, TopBar } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -17,24 +18,32 @@ export default async function PortionPage({
   const { d, meal } = await searchParams;
   if (!isDayString(d) || !meal) return <Empty>Open this from a meal on the day screen.</Empty>;
 
-  const food = await getFood(Number(foodId));
+  const [food, last] = await Promise.all([getFood(Number(foodId)), getLastPortion(Number(foodId))]);
   if (!food) notFound();
 
   return (
-    <main className="mx-auto max-w-md px-4 pb-8 pt-3">
-      <header className="flex items-center gap-2 pb-4">
-        <Link
-          href={`/add?d=${d}&meal=${encodeURIComponent(meal)}`}
-          className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-dim"
-        >‹</Link>
-        <div className="min-w-0 flex-1">
-          <p className="eyebrow text-accent">{meal}</p>
-          <h1 className="display truncate text-xl font-semibold">{food.name}</h1>
-          {food.brand && <p className="truncate text-xs text-ink-dim">{food.brand}</p>}
-        </div>
-      </header>
-
-      <PortionForm food={food} day={d} meal={meal} />
+    <main className="mx-auto max-w-md px-4">
+      <TopBar
+        back={`/add?d=${d}&meal=${encodeURIComponent(meal)}`}
+        sub={`Add to ${meal}`}
+        title={food.name}
+        action={food.source !== "usda" && (
+          <Link href={`/foods/${food.id}`} className="press flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-accent-ink">
+            Edit
+          </Link>
+        )}
+      />
+      {food.brand && <p className="-mt-1 mb-3 px-1 text-sm text-ink-dim">{food.brand}</p>}
+      <div className="pb-32 pt-2">
+        {/* Opens on the portion he used last time — he eats the same things. */}
+        <PortionForm
+          food={food}
+          initial={last}
+          action={logFood}
+          hidden={{ day: d, meal, foodId: food.id }}
+          submitLabel={`Add to ${meal}`}
+        />
+      </div>
     </main>
   );
 }
