@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { undoQuickAdd } from "@/app/actions";
-import { getEntry, getMyFoods, getRecentFoods } from "@/lib/db";
+import { getEntry, getLoadedStores, getMyFoods, getRecentFoods } from "@/lib/db";
 import { isDayString } from "@/lib/day";
 import { portionText } from "@/lib/servings";
 import { AddSearch } from "@/components/add-search";
@@ -17,8 +17,8 @@ export default async function AddPage(
   }
 
   // He eats the same things. After a week or two the Recent list is the whole app.
-  const [recent, mine, just] = await Promise.all([
-    getRecentFoods(), getMyFoods(), added ? getEntry(Number(added)) : null,
+  const [recent, mine, stores, just] = await Promise.all([
+    getRecentFoods(), getMyFoods(), getLoadedStores(), added ? getEntry(Number(added)) : null,
   ]);
 
   return (
@@ -30,7 +30,7 @@ export default async function AddPage(
                 </Link>
               } />
 
-      <AddSearch day={d} meal={meal} recent={recent} mine={mine} />
+      <AddSearch day={d} meal={meal} recent={recent} mine={mine} stores={stores} />
 
       {/* The quick "+" logs without leaving the screen; this says what went in. */}
       {just && (

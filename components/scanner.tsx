@@ -58,7 +58,7 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
       fd.set("barcode", p.barcode); fd.set("name", p.name);
       fd.set("brand", p.brand ?? "");
       fd.set("kcal", String(p.kcal)); fd.set("protein", String(p.protein));
-      fd.set("carb", String(p.carb)); fd.set("fat", String(p.fat));
+      fd.set("carb", String(p.carb)); fd.set("fat", String(p.fat)); fd.set("servingLabel", p.servingLabel);
       fd.set("fiber", p.fiber === null ? "" : String(p.fiber));
       fd.set("servingGrams", p.servingGrams === null ? "" : String(p.servingGrams));
       await adoptOffProduct(fd);

@@ -27,13 +27,13 @@ export const sql = new Proxy((() => {}) as unknown as Neon, {
 type FoodRow = {
   id: number; name: string; brand: string | null; barcode: string | null;
   kcal_100g: number; protein_100g: number; carb_100g: number; fat_100g: number;
-  fiber_100g: number | null; source: Food["source"];
+  fiber_100g: number | null; source: Food["source"]; store: string | null;
 };
 
 const toFood = (r: FoodRow, servings: Serving[] = []): Food => ({
   id: Number(r.id), name: r.name, brand: r.brand, barcode: r.barcode,
   kcal: r.kcal_100g, protein: r.protein_100g, carb: r.carb_100g,
-  fat: r.fat_100g, fiber: r.fiber_100g, source: r.source, servings,
+  fat: r.fat_100g, fiber: r.fiber_100g, source: r.source, store: r.store ?? null, servings,
 });
 
 async function withServings(rows: FoodRow[]): Promise<Food[]> {
@@ -222,17 +222,39 @@ export async function getRecentFoods(limit = 20): Promise<RecentFood[]> {
   }));
 }
 
-export async function searchFoods(query: string, limit = 40): Promise<Food[]> {
-  const q = query.trim();
-  if (!q) return [];
+/**
+ * Every word has to appear in the name, brand or store, so "aldi greek yogurt"
+ * finds Friendly Farms. `store` narrows to one shop's products.
+ */
+export async function searchFoods(query: string, limit = 40, store: string | null = null): Promise<Food[]> {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
+  if (!words.length) return [];
+  const patterns = words.map((w) => `%${w}%`);
   const rows = (await sql`
     SELECT * FROM foods
-     WHERE name ILIKE ${"%" + q + "%"} OR brand ILIKE ${"%" + q + "%"}
+     WHERE (SELECT bool_and(lower(name || ' ' || coalesce(brand, '') || ' ' || coalesce(store, '')) LIKE p)
+              FROM unnest(${patterns}::text[]) AS p)
+       AND (${store}::text IS NULL OR store = ${store})
      ORDER BY
        -- A name that starts with what he typed beats one that merely contains it.
-       (lower(name) LIKE ${q.toLowerCase() + "%"}) DESC,
+       (lower(name) LIKE ${words[0] + "%"}) DESC,
+       -- His own foods, then the store-brand products he buys, then the generic library.
+       (source IN ('off', 'manual')) DESC, (source = 'store') DESC,
        length(name), name
      LIMIT ${limit}`) as FoodRow[];
+  return withServings(rows);
+}
+
+/** Which stores have products loaded — the add screen only shows those tabs. */
+export async function getLoadedStores(): Promise<string[]> {
+  const rows = (await sql`SELECT DISTINCT store FROM foods WHERE store IS NOT NULL`) as { store: string }[];
+  return rows.map((r) => r.store);
+}
+
+/** One store's products in the order they were seeded: most-scanned first. */
+export async function getStoreFoods(store: string, limit = 60): Promise<Food[]> {
+  const rows = (await sql`
+    SELECT * FROM foods WHERE store = ${store} ORDER BY id LIMIT ${limit}`) as FoodRow[];
   return withServings(rows);
 }
 
@@ -251,7 +273,7 @@ export async function getFoodByBarcode(barcode: string): Promise<Food | null> {
 /** Foods he made or scanned in — the library screen, USDA rows excluded. */
 export async function getMyFoods(): Promise<Food[]> {
   const rows = (await sql`
-    SELECT * FROM foods WHERE source <> 'usda' ORDER BY created_at DESC`) as FoodRow[];
+    SELECT * FROM foods WHERE source IN ('off', 'manual') ORDER BY created_at DESC`) as FoodRow[];
   return withServings(rows);
 }
 

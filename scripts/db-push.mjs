@@ -1,7 +1,7 @@
 // Applies db/schema.sql to DATABASE_URL, then seeds the bundled food library.
 // Idempotent — safe to re-run.
 //   npm run db:push
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { neon } from "@neondatabase/serverless";
 
 const url = process.env.DATABASE_URL;
@@ -73,6 +73,43 @@ if (servings.length) {
     )`;
 }
 const seeded = seededRows.length;
+
+// Store-brand products (Aldi, Walmart, Schnucks), from scripts/build-store-foods.mjs.
+// Keyed on barcode: a product he already scanned keeps his row, and a re-run
+// inserts nothing twice.
+const storeFile = new URL("../db/store-foods.json", import.meta.url);
+let storeSeeded = 0;
+if (existsSync(storeFile)) {
+  const store = JSON.parse(readFileSync(storeFile, "utf8"));
+  for (let i = 0; i < store.length; i += 1000) {
+    const chunk = store.slice(i, i + 1000);
+    const rows = await sql`
+      INSERT INTO foods (name, brand, barcode, store, kcal_100g, protein_100g, carb_100g, fat_100g, fiber_100g, source)
+      SELECT t.*, 'store' FROM unnest(
+        ${chunk.map((f) => f.name)}::text[], ${chunk.map((f) => f.brand)}::text[],
+        ${chunk.map((f) => f.barcode)}::text[], ${chunk.map((f) => f.store)}::text[],
+        ${chunk.map((f) => f.kcal)}::real[], ${chunk.map((f) => f.protein)}::real[],
+        ${chunk.map((f) => f.carb)}::real[], ${chunk.map((f) => f.fat)}::real[],
+        ${chunk.map((f) => f.fiber)}::real[]
+      ) AS t(name, brand, barcode, store, kcal, protein, carb, fat, fiber)
+      ON CONFLICT (barcode) WHERE barcode IS NOT NULL DO NOTHING
+      RETURNING id, barcode`;
+    const byCode = new Map(rows.map((r) => [r.barcode, Number(r.id)]));
+    const sv = [];
+    for (const f of chunk) {
+      const id = byCode.get(f.barcode);
+      if (id !== undefined) f.servings.forEach((s, j) => sv.push([id, s.label, s.grams, j]));
+    }
+    if (sv.length) {
+      await sql`
+        INSERT INTO food_servings (food_id, label, grams, position)
+        SELECT * FROM unnest(${sv.map((s) => s[0])}::bigint[], ${sv.map((s) => s[1])}::text[],
+                             ${sv.map((s) => s[2])}::real[], ${sv.map((s) => s[3])}::int[])`;
+    }
+    storeSeeded += rows.length;
+  }
+}
+console.log(`store products: ${storeSeeded} seeded this run`);
 
 const [{ total }] = await sql`SELECT count(*)::int AS total FROM foods`;
 console.log(

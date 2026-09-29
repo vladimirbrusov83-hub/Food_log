@@ -139,6 +139,8 @@ Three indexes carry weight:
 | `lib/db.ts` | Every query. Raw SQL, no ORM. |
 | `lib/macros.ts` | Portion arithmetic and the fiber-total rule. |
 | `lib/servings.ts` | Which serving sizes are shown, and how a portion reads. |
+| `scripts/build-store-foods.mjs` | Builds `db/store-foods.json` (Aldi/Walmart/Schnucks) from OFF. |
+| `components/meal-card.tsx` | One collapsible meal on the day screen. |
 | `components/food-form.tsx` | Create/edit food and the scanner's not-found form. |
 | `lib/day.ts` | Local-time date helpers. |
 | `lib/off.ts` | Open Food Facts client. |

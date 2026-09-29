@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./ui";
 
 const TABS = [
-  { href: "/", label: "Diary", icon: "today" },
   { href: "/history", label: "History", icon: "history" },
+  { href: "/", label: "Diary", icon: "today" },
   { href: "/foods", label: "My foods", icon: "foods" },
 ];
 

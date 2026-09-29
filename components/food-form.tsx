@@ -158,9 +158,9 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
 type Nutrient = "kcal" | "protein" | "carb" | "fat" | "fiber";
 const NUTRIENTS: { name: Nutrient; label: string; unit: string; dot: string; required?: boolean; hint?: string }[] = [
   { name: "kcal", label: "Calories", unit: "kcal", dot: "var(--color-ink)", required: true },
-  { name: "protein", label: "Protein", unit: "g", dot: "var(--color-protein)", required: true },
-  { name: "carb", label: "Carbs", unit: "g", dot: "var(--color-carb)", required: true },
   { name: "fat", label: "Fat", unit: "g", dot: "var(--color-fat)", required: true },
+  { name: "carb", label: "Carbs", unit: "g", dot: "var(--color-carb)", required: true },
+  { name: "protein", label: "Protein", unit: "g", dot: "var(--color-protein)", required: true },
   { name: "fiber", label: "Fiber", unit: "g", dot: "var(--color-fiber)", hint: "Leave blank if not listed" },
 ];
 

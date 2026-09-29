@@ -33,7 +33,9 @@ export default async function PortionPage({
           </Link>
         )}
       />
-      {food.brand && <p className="-mt-1 mb-3 px-1 text-sm text-ink-dim">{food.brand}</p>}
+      {(food.brand || food.store) && (
+        <p className="-mt-1 mb-3 px-1 text-sm text-ink-dim">{[food.brand, food.store].filter(Boolean).join(" · ")}</p>
+      )}
       <div className="pb-32 pt-2">
         {/* Opens on the portion he used last time — he eats the same things. */}
         <PortionForm

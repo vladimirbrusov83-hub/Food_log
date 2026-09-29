@@ -25,6 +25,12 @@ of things already decided and traps that look like bugs.
 - **Servings or grams only.** No cups, spoons, ounces. `lib/servings.ts` filters
   them at read time (`withServings`); do not show raw USDA labels anywhere.
   Entries keep `serving_label`/`serving_qty` as a snapshot; grams stay canonical.
+- **Fat, carbs, protein — in that order, everywhere.** `MACROS` in
+  `components/macro-bar.tsx` is the one list; every screen maps over it.
+- **Store products** (Aldi, Walmart, Schnucks) are `source = 'store'` rows with
+  a `store` column, seeded by `db:push` from `db/store-foods.json`, which
+  `npm run build:store-foods` builds from Open Food Facts (~45 min, resumable).
+  **Never read that JSON into context.** They are not "My foods".
 - **Light theme** (since 2026-09-29, his choice over a new dark one). Tokens are
   OKLCH in `app/globals.css`; one font, Geist. Macro colours are fixed:
   protein blue, carbs amber, fat coral, fiber violet.

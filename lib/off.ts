@@ -26,7 +26,22 @@ export type OffProduct = {
   fiber: number | null;
   /** From OFF's free-text serving_size, when a gram number can be read out. */
   servingGrams: number | null;
+  /** The label's own name for that serving: "1 container", else "1 serving". */
+  servingLabel: string;
 };
+
+/** Volume and imperial words; a serving named in them is just "1 serving". */
+const VOLUME = /\b(cups?|oz|onz|oza|ozs|ounces?|fl|lbs?|pints?|quarts?|gallons?|tbsp|tablespoons?|tsp|teaspoons?|ml|l)\b/i;
+
+/** "1 container (170g)" → "1 container". Anything else — "2/3 cup (170g)",
+ *  "6 onz", "11 crackers" — is just "1 serving"; the grams carry the meaning. */
+export function parseServingLabel(text: string | undefined): string {
+  const before = String(text ?? "").split("(")[0].replace(/\d+(?:[.,]\d+)?\s*(g|ml)\b/gi, "").trim().toLowerCase();
+  if (!before || VOLUME.test(before) || /["″/]/.test(before)) return "1 serving";
+  const m = before.match(/^(?:1\s+)?([a-z][a-z ]{1,20})$/);
+  if (!m || /\b(serving|portion|unit|size)\b/.test(m[1])) return "1 serving";
+  return `1 ${m[1].trim()}`;
+}
 
 type Nutriments = Record<string, number | string | undefined>;
 
@@ -72,13 +87,14 @@ function toProduct(barcode: string, p: Record<string, unknown>): OffProduct | nu
     kcal: Math.round(kcal),
     protein, carb, fat,
     fiber: num(n["fiber_100g"]),   // null, not 0, when OFF doesn't know
-    servingGrams: parseServingGrams(p.serving_size as string | undefined),
+    servingGrams: num(p.serving_quantity) ?? parseServingGrams(p.serving_size as string | undefined),
+    servingLabel: parseServingLabel(p.serving_size as string | undefined),
   };
 }
 
 /** null when OFF has never heard of the barcode, or has nothing usable on it. */
 export async function lookupBarcode(barcode: string): Promise<OffProduct | null> {
-  const fields = "product_name,generic_name,brands,nutriments,serving_size";
+  const fields = "product_name,generic_name,brands,nutriments,serving_size,serving_quantity";
   const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=${fields}`;
   try {
     const res = await fetch(url, { headers: { "User-Agent": UA }, cache: "no-store" });

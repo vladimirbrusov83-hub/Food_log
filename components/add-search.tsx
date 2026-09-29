@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { adoptOffProduct, quickAdd, searchEverything } from "@/app/actions";
+import { adoptOffProduct, browseStore, quickAdd, searchEverything } from "@/app/actions";
 import { forGrams, g, kcal } from "@/lib/macros";
 import { portionText } from "@/lib/servings";
-import type { Food, RecentFood } from "@/lib/types";
+import { STORES, type Food, type RecentFood } from "@/lib/types";
 import type { OffProduct } from "@/lib/off";
 import { Icon, List, SectionLabel } from "./ui";
 
@@ -16,22 +16,36 @@ import { Icon, List, SectionLabel } from "./ui";
  * it is instant the second time.
  */
 export function AddSearch(
-  { day, meal, recent, mine }: { day: string; meal: string; recent: RecentFood[]; mine: Food[] },
+  { day, meal, recent, mine, stores }:
+  { day: string; meal: string; recent: RecentFood[]; mine: Food[]; stores: string[] },
 ) {
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"recent" | "mine">(recent.length || !mine.length ? "recent" : "mine");
+  const [tab, setTab] = useState<string>(recent.length || !mine.length ? "recent" : "mine");
   const [results, setResults] = useState<{ mine: Food[]; off: OffProduct[] } | null>(null);
+  const [storeFoods, setStoreFoods] = useState<Record<string, Food[]>>({});
   const [pending, start] = useTransition();
+  const store = (STORES as readonly string[]).includes(tab) ? tab : null;
 
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) { setResults(null); return; }
-    // Typed fast, searched once: 250ms after the last keystroke.
+    // Typed fast, searched once: 250ms after the last keystroke. A store tab narrows it.
     const t = setTimeout(() => {
-      start(async () => setResults(await searchEverything(q)));
+      start(async () => setResults(await searchEverything(q, store)));
     }, 250);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, store]);
+
+  useEffect(() => {
+    if (store && !storeFoods[store]) {
+      start(async () => {
+        const foods = await browseStore(store);
+        setStoreFoods((s) => ({ ...s, [store]: foods }));
+      });
+    }
+  }, [store, storeFoods]);
+
+  const tabs: [string, string][] = [["recent", "Recent"], ["mine", "My foods"], ...STORES.filter((s) => stores.includes(s)).map((s) => [s, s] as [string, string])];
 
   const q = `d=${day}&meal=${encodeURIComponent(meal)}`;
   const href = (foodId: number) => `/add/${foodId}?${q}`;
@@ -43,7 +57,7 @@ export function AddSearch(
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search foods"
+          placeholder={store ? `Search ${store}` : "Search foods"}
           type="search"
           // No autoFocus: on iOS it throws the keyboard up over the recent list,
           // which is the part he wants most of the time.
@@ -56,44 +70,30 @@ export function AddSearch(
         )}
       </label>
 
-      {results === null ? (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <Action href={`/scan?${q}`} icon="scan" title="Scan barcode" />
-            <Action href={`/foods/new?${q}`} icon="pencil" title="Create food" />
-          </div>
+      {results === null && (
+        <div className="grid grid-cols-2 gap-3">
+          <Action href={`/scan?${q}`} icon="scan" title="Scan barcode" />
+          <Action href={`/foods/new?${q}`} icon="pencil" title="Create food" />
+        </div>
+      )}
 
-          <section>
-            <div role="tablist" className="mb-3 flex gap-1.5">
-              {([["recent", "Recent"], ["mine", "My foods"]] as const).map(([k, label]) => (
-                <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-                        className={`press min-h-9 rounded-full px-4 text-sm font-semibold ${
-                          tab === k ? "bg-ink text-white" : "text-ink-dim"
-                        }`}>
-                  {label}
-                </button>
-              ))}
-            </div>
+      <div role="tablist" className="-mx-4 flex gap-1.5 overflow-x-auto px-4 [scrollbar-width:none]">
+        {tabs.map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+                  className={`press min-h-9 shrink-0 rounded-full px-4 text-sm font-semibold ${
+                    tab === k ? "bg-ink text-white" : "text-ink-dim"
+                  }`}>
+            {label}
+          </button>
+        ))}
+      </div>
 
-            {tab === "recent" ? (
-              recent.length === 0 ? (
-                <Hint>Foods you log show up here, with the amount you had last time. One tap on + logs it again.</Hint>
-              ) : (
-                <List>{recent.map((f) => <RecentRow key={f.id} food={f} href={href(f.id)} day={day} meal={meal} />)}</List>
-              )
-            ) : mine.length === 0 ? (
-              <Hint>Foods you create or scan land here.</Hint>
-            ) : (
-              <List>{mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
-            )}
-          </section>
-        </>
-      ) : (
+      {results !== null ? (
         <>
           <section>
-            <SectionLabel>Library</SectionLabel>
+            <SectionLabel>{store ?? "Library"}</SectionLabel>
             {results.mine.length === 0 ? (
-              <Hint>Nothing in your library matches “{query.trim()}”.</Hint>
+              <Hint>Nothing {store ? `from ${store}` : "in your library"} matches “{query.trim()}”.</Hint>
             ) : (
               <List>{results.mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
             )}
@@ -115,6 +115,27 @@ export function AddSearch(
             <Icon name="plus" className="h-4 w-4" /> Create “{query.trim()}” yourself
           </Link>
         </>
+      ) : store ? (
+        !storeFoods[store] ? (
+          <Hint>Loading {store}…</Hint>
+        ) : storeFoods[store].length === 0 ? (
+          <Hint>No {store} products yet.</Hint>
+        ) : (
+          <section>
+            <SectionLabel right={<span className="text-xs text-ink-faint">most popular first</span>}>{store}</SectionLabel>
+            <List>{storeFoods[store].map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
+          </section>
+        )
+      ) : tab === "recent" ? (
+        recent.length === 0 ? (
+          <Hint>Foods you log show up here, with the amount you had last time. One tap on + logs it again.</Hint>
+        ) : (
+          <List>{recent.map((f) => <RecentRow key={f.id} food={f} href={href(f.id)} day={day} meal={meal} />)}</List>
+        )
+      ) : mine.length === 0 ? (
+        <Hint>Foods you create or scan land here.</Hint>
+      ) : (
+        <List>{mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
       )}
     </div>
   );
@@ -151,7 +172,7 @@ function FoodRow({ food, href }: { food: Food; href: string }) {
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.9375rem] font-medium">{food.name}</span>
           <span className="tnum block truncate text-[0.8125rem] text-ink-dim">
-            {food.brand ? `${food.brand} · ` : ""}{p.unit}
+            {[food.brand, food.store, p.unit].filter(Boolean).join(" · ")}
           </span>
         </span>
         <span className="tnum shrink-0 text-right text-[0.9375rem] font-semibold">
@@ -206,6 +227,7 @@ function OffRow({ product, day, meal }: { product: OffProduct; day: string; meal
       <input type="hidden" name="fat" value={product.fat} />
       <input type="hidden" name="fiber" value={product.fiber ?? ""} />
       <input type="hidden" name="servingGrams" value={product.servingGrams ?? ""} />
+      <input type="hidden" name="servingLabel" value={product.servingLabel} />
       <button type="submit" className="press flex w-full min-h-16 items-center gap-3 px-5 py-2.5 text-left active:bg-sunken">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.9375rem] font-medium">{product.name}</span>

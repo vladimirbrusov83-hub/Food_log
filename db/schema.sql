@@ -88,4 +88,10 @@ CREATE TABLE IF NOT EXISTS targets (
 -- A snapshot like the macros; grams stay the canonical amount. Null = logged in grams.
 -- Added 2026-09-29 with the serving/grams portion picker.
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS serving_label text;
-ALTER TABLE entries ADD COLUMN IF NOT EXISTS serving_qty   real
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS serving_qty   real;
+
+-- Store-brand products (Aldi, Walmart, Schnucks) seeded from db/store-foods.json,
+-- source = 'store'. `store` names the shop; null for everything else.
+-- Added 2026-09-29.
+ALTER TABLE foods ADD COLUMN IF NOT EXISTS store text;
+CREATE INDEX IF NOT EXISTS foods_store_idx ON foods (store) WHERE store IS NOT NULL

@@ -171,7 +171,13 @@ export async function adoptOffProduct(formData: FormData) {
   const meal = String(formData.get("meal") ?? "");
   const num = (k: string) => Number(formData.get(k)) || 0;
   const rawFiber = String(formData.get("fiber") ?? "").trim();
-  const servingGrams = Number(formData.get("servingGrams"));
+  let servingGrams = Number(formData.get("servingGrams"));
+  let servingLabel = String(formData.get("servingLabel") ?? "").trim();
+  // Search results carry no serving size; the product itself does. One call, once.
+  if (barcode && !(servingGrams > 0)) {
+    const full = await lookupBarcode(barcode);
+    if (full?.servingGrams) { servingGrams = full.servingGrams; servingLabel = full.servingLabel; }
+  }
 
   const existing = barcode ? await db.getFoodByBarcode(barcode) : null;
   const id = existing?.id ?? await db.createFood({
@@ -182,19 +188,19 @@ export async function adoptOffProduct(formData: FormData) {
     fiber: rawFiber === "" ? null : Number(rawFiber),
     source: "off",
     servings: Number.isFinite(servingGrams) && servingGrams > 0
-      ? [{ label: "1 serving", grams: servingGrams }]
+      ? [{ label: servingLabel || "1 serving", grams: servingGrams }]
       : [],
   });
 
   redirect(`/add/${id}?d=${day}&meal=${encodeURIComponent(meal)}`);
 }
 
-/** The add screen's search box: bundled foods first, then Open Food Facts. */
-export async function searchEverything(query: string) {
+/** The add screen's search box: the library first, then Open Food Facts. A store narrows both to that shop. */
+export async function searchEverything(query: string, store: string | null = null) {
   const { searchProducts } = await import("@/lib/off");
   const [mine, off] = await Promise.all([
-    db.searchFoods(query),
-    query.trim().length >= 3 ? searchProducts(query) : Promise.resolve([]),
+    db.searchFoods(query, 40, store),
+    !store && query.trim().length >= 3 ? searchProducts(query) : Promise.resolve([]),
   ]);
   const seen = new Set(mine.map((f) => f.barcode).filter(Boolean));
   return {
@@ -213,4 +219,9 @@ export async function saveTargets(formData: FormData) {
   revalidatePath("/");
   const day = String(formData.get("day") ?? "");
   redirect(day ? `/?d=${day}` : "/");
+}
+
+/** A store's most-scanned products, for browsing that store on the add screen. */
+export async function browseStore(store: string) {
+  return db.getStoreFoods(store, 80);
 }

@@ -27,8 +27,12 @@ not progress toward anything. Beside it, three lines fill toward your daily
 protein, carb and fat targets. Set them with **Targets**; leave one blank and
 its line just shows grams. There is no calorie target.
 
-Below that, one card per meal: **Breakfast, Lunch, Dinner, Snack**. Tap the
-green **+** on a meal to add food to it.
+Below that, one card per meal: **Breakfast, Lunch, Dinner, Snack**. Tap a
+meal's name to fold or unfold it; folded, it still shows its calories and
+fat/carbs/protein. Each food inside shows its own fat, carbs and protein. Tap
+the green **+** to add food to that meal.
+
+Fat, carbs, protein are always in that order, on every screen.
 
 ### Adding food
 
@@ -40,9 +44,16 @@ lists:
   straight away. A bar at the bottom confirms it, with **Undo**.
 - **My foods**: everything you created or scanned.
 
-Search looks in the 434 bundled foods (**Library**) and in Open Food Facts
-(**Packaged foods**). If nothing fits, **Create "…" yourself** is under the
-results.
+*Not loaded yet (see `npm run build:store-foods`):* the tabs **Aldi**, **Walmart**
+and **Schnucks** will list those stores' own brands
+(Friendly Farms, Great Value, Schnucks and the rest), most popular first, each
+with the serving size printed on the pack. With a store tab picked, the search
+box searches only that store.
+
+Search looks in your foods, the store products and the 434 bundled basics
+(**Library**), then Open Food Facts (**Packaged foods**). Every word has to
+match, so "aldi greek" works. If nothing fits, **Create "…" yourself** is under
+the results.
 
 ### Portions: servings or grams
 

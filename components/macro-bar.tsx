@@ -6,9 +6,10 @@ import { Icon } from "./ui";
 
 export const MACROS = [
   // `ink` is the same hue dark enough to read as text on white.
-  { key: "protein", label: "Protein", short: "P", color: "var(--color-protein)", ink: "oklch(0.5 0.15 255)", kcalPerG: 4 },
-  { key: "carb", label: "Carbs", short: "C", color: "var(--color-carb)", ink: "oklch(0.58 0.13 70)", kcalPerG: 4 },
+  // Fat, carbs, protein: the order he reads them in, everywhere in the app.
   { key: "fat", label: "Fat", short: "F", color: "var(--color-fat)", ink: "oklch(0.55 0.16 35)", kcalPerG: 9 },
+  { key: "carb", label: "Carbs", short: "C", color: "var(--color-carb)", ink: "oklch(0.58 0.13 70)", kcalPerG: 4 },
+  { key: "protein", label: "Protein", short: "P", color: "var(--color-protein)", ink: "oklch(0.5 0.15 255)", kcalPerG: 4 },
 ] as const;
 
 /**
@@ -63,7 +64,6 @@ export function MacroDonut(
 export function MacroTargets(
   { total, targets, day }: { total: MacroTotal; targets: Targets; day: string },
 ) {
-  const anyTarget = MACROS.some((m) => targets[m.key]);
   return (
     <div className="space-y-3">
       {MACROS.map((m) => {
@@ -96,16 +96,16 @@ export function MacroTargets(
           Fiber <span className="font-semibold text-ink">{fiberLabel(total.fiber, total.fiberComplete)}</span>
         </span>
         <Link href={`/targets?d=${day}`}
-              className="press -my-2 -mr-2 flex min-h-11 items-center gap-1 rounded-full px-2 font-medium text-accent-ink">
+              className="press -my-2 -mr-2 flex min-h-11 items-center gap-1 whitespace-nowrap rounded-full px-2 font-medium text-accent-ink">
           <Icon name="target" className="h-4 w-4" />
-          {anyTarget ? "Targets" : "Set targets"}
+          Targets
         </Link>
       </div>
     </div>
   );
 }
 
-/** "24p · 30c · 8f", with the letters in their colours. For rows and cards. */
+/** "F 8  C 30  P 24", with the letters in their colours. For rows and cards. */
 export function MacroInline({ m, className = "" }: { m: Macros; className?: string }) {
   return (
     <span className={`tnum inline-flex gap-2 text-xs text-ink-dim ${className}`}>

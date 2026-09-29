@@ -12,7 +12,9 @@ export type Food = Macros & {
   name: string;
   brand: string | null;
   barcode: string | null;
-  source: "usda" | "off" | "manual";
+  source: "usda" | "off" | "manual" | "store";
+  /** "Aldi", "Walmart" or "Schnucks" for the bundled store-brand products. */
+  store: string | null;
   servings: Serving[];
 };
 
@@ -46,3 +48,6 @@ export type Meal = {
 
 /** The four every day starts with. "+ Add meal" adds more, for that day only. */
 export const STANDARD_MEALS = ["Breakfast", "Lunch", "Dinner", "Snack"] as const;
+
+/** The shops whose own brands ship with the app. */
+export const STORES = ["Aldi", "Walmart", "Schnucks"] as const;
