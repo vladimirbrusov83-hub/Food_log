@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { dayLabel, shiftDay, toDayString } from "@/lib/day";
 import { Icon } from "./ui";
 
@@ -11,7 +12,10 @@ import { Icon } from "./ui";
  * the app — miss one and yesterday starts calling itself Today.
  */
 export function DayHeader({ day, logged }: { day: string; logged: string[] }) {
-  const today = toDayString(new Date());
+  // Worked out after mount: the server render runs in UTC, and after ~7pm in
+  // the US it would call today "Yesterday" and the page would not hydrate.
+  const [today, setToday] = useState<string | null>(null);
+  useEffect(() => setToday(toDayString(new Date())), []);
   const [y, m, d] = day.split("-").map(Number);
   const date = new Date(y, m - 1, d);
   // Weeks start on Monday.
@@ -19,7 +23,7 @@ export function DayHeader({ day, logged }: { day: string; logged: string[] }) {
   const week = Array.from({ length: 7 }, (_, i) => shiftDay(monday, i));
   const has = new Set(logged);
   const full = date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-  const label = dayLabel(day, today);
+  const label = today ? dayLabel(day, today) : "";
   const relative = label === "Today" || label === "Yesterday" || label === "Tomorrow";
 
   return (
@@ -31,7 +35,7 @@ export function DayHeader({ day, logged }: { day: string; logged: string[] }) {
             {relative ? label : date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
           </h1>
         </div>
-        {day !== today && (
+        {today && day !== today && (
           <Link href={`/?d=${today}`}
                 className="press mb-1 flex min-h-9 items-center rounded-full bg-surface px-3.5 text-sm font-semibold text-accent-ink shadow-card">
             Today

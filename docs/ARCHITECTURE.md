@@ -85,7 +85,8 @@ adds a meal to *that day only* — there is no global meal list to maintain.
 **Macro targets, and nothing more.** At first there were no targets at all. On
 2026-09-29 he asked for protein/carb/fat lines that fill toward daily targets he
 sets (`/targets`, one-row `targets` table, blank = no target). There is still no
-calorie target, no "you have 400 left", no streaks and no suggestions. The ring
+calorie target, no "you have 400 left", no streaks, no suggestions, and no
+weekly averages presented as a grade (History shows a plain 7-day average). The ring
 on the day screen is the calorie *split*, not progress.
 
 **Servings or grams, nothing else.** `lib/servings.ts` hides volume and imperial

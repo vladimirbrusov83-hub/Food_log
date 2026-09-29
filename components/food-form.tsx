@@ -30,12 +30,11 @@ export function FoodForm(
     food?.servings.length
       ? food.servings.map((s) => ({ key: nextKey++, label: s.label, grams: g(s.grams) }))
       : [{ key: nextKey++, label: "", grams: "" }]);
-  // Editing a food with a serving opens on "per serving": that is how the label reads.
-  const firstServing = food?.servings[0];
-  const [basis, setBasis] = useState<"100g" | "serving">(firstServing ? "serving" : "100g");
+  // Opens per 100 g, which is what is stored: opening per serving would round
+  // at serving scale, and a Save that only renamed the food would shift its numbers.
+  const [basis, setBasis] = useState<"100g" | "serving">("100g");
   const [vals, setVals] = useState<Record<Nutrient, string>>(() => {
-    const f = firstServing ? firstServing.grams / 100 : 1;
-    const v = (n: number | null | undefined) => (n === null || n === undefined ? "" : g(n * f));
+    const v = (n: number | null | undefined) => (n === null || n === undefined ? "" : g(n));
     return { kcal: v(food?.kcal), protein: v(food?.protein), carb: v(food?.carb), fat: v(food?.fat), fiber: v(food?.fiber) };
   });
 
