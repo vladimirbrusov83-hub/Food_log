@@ -3,7 +3,7 @@
 The scanner needs https, so the app has to be deployed before the camera can be
 tested at all. That is the main reason to do this.
 
-Repo: <https://github.com/vladimirbrusov83-hub/Food_log> (public)
+Repo: <https://github.com/vladimirbrusov83-hub/Food_log> (private)
 
 ---
 
@@ -100,8 +100,8 @@ there.
 | `DATABASE_URL` | Neon **pooled**. The app connects on first query, not at import, so a build without it still succeeds. |
 | `APP_PASSCODE` | Changing it signs out every open browser — by design, since the cookie is derived from it. |
 
-Locally they live in `.env.local`, which is gitignored. **The repo is public.**
-Nothing with a password in it goes in a tracked file.
+Locally they live in `.env.local`, which is gitignored. The repo is private now, but the rule stands.
+Nothing with a password in it goes in a tracked file, private repo or not.
 
 To pull production's values down:
 
