@@ -98,7 +98,7 @@ there.
 | Name | Notes |
 |---|---|
 | `DATABASE_URL` | Neon **pooled**. The app connects on first query, not at import, so a build without it still succeeds. |
-| `APP_PASSCODE` | Changing it signs out every open browser — by design, since the cookie is derived from it. |
+| `APP_PASSCODE` | Changing it signs out every open browser — by design, since the cookie is derived from it. Also kept in the Mac Keychain: `security find-generic-password -s foodlog-passcode -w` |
 
 Locally they live in `.env.local`, which is gitignored. The repo is private now, but the rule stands.
 Nothing with a password in it goes in a tracked file, private repo or not.
