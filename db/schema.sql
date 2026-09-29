@@ -73,3 +73,13 @@ CREATE TABLE IF NOT EXISTS entries (
 CREATE INDEX IF NOT EXISTS entries_meal_idx ON entries (day_meal_id);
 CREATE INDEX IF NOT EXISTS entries_food_idx ON entries (food_id);
 CREATE INDEX IF NOT EXISTS entries_recent_idx ON entries (created_at DESC);
+
+-- Daily macro targets. One row, ever (id is pinned to 1). Each column is
+-- nullable: blank means "no target for that one", and its line just shows grams.
+-- Added 2026-09-29 at his request — this reverses the original "no targets" call.
+CREATE TABLE IF NOT EXISTS targets (
+  id      int PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  protein real,
+  carb    real,
+  fat     real
+);

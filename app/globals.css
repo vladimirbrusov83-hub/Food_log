@@ -45,6 +45,11 @@ summary { list-style: none; cursor: pointer; }
 details[open] > summary .chev { transform: rotate(90deg); }
 .chev { transition: transform 0.18s ease; }
 
+/* Macro lines grow from the left each time the day renders, so logging a food
+   visibly fills them in. */
+@keyframes fill-in { from { transform: scaleX(0); } }
+.fill-in { transform-origin: left; animation: fill-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

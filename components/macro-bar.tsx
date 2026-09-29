@@ -1,5 +1,7 @@
 import { fiberLabel, g, kcal, type MacroTotal } from "@/lib/macros";
 import type { Macros } from "@/lib/types";
+import type { Targets } from "@/lib/db";
+import Link from "next/link";
 
 /** The four numbers, in the four colours they keep everywhere in the app. */
 export function MacroLine(
@@ -32,6 +34,51 @@ export function MacroSplit({ total }: { total: Macros }) {
       {parts.map((p) => (
         <div key={p.key} style={{ width: `${(p.kcal / sum) * 100}%`, background: p.color }} />
       ))}
+    </div>
+  );
+}
+
+/** Protein, carbs and fat as lines that fill toward his daily targets. A macro
+ *  with no target set shows its grams over an empty track. Past the target the
+ *  line stays full; the number says by how much. */
+export function MacroTargets(
+  { total, targets, fiberComplete, day }:
+  { total: MacroTotal; targets: Targets; fiberComplete: boolean; day: string },
+) {
+  const rows = [
+    { key: "protein", label: "Protein", value: total.protein, target: targets.protein, color: "var(--color-protein)" },
+    { key: "carb", label: "Carbs", value: total.carb, target: targets.carb, color: "var(--color-carb)" },
+    { key: "fat", label: "Fat", value: total.fat, target: targets.fat, color: "var(--color-fat)" },
+  ];
+  const anyTarget = rows.some((r) => r.target);
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => {
+        const pct = r.target ? Math.min(1, r.value / r.target) : 0;
+        return (
+          <div key={r.key} className="grid grid-cols-[3.75rem_1fr_auto] items-center gap-2.5">
+            <span className="text-xs font-semibold" style={{ color: r.color }}>{r.label}</span>
+            <div className="h-2 overflow-hidden rounded-full bg-line">
+              {pct > 0 && (
+                <div
+                  className="fill-in h-full rounded-full"
+                  style={{ width: `${pct * 100}%`, background: r.color }}
+                />
+              )}
+            </div>
+            <span className="tnum min-w-[4.75rem] text-right text-xs text-ink-dim">
+              <span className="font-semibold text-ink">{g(r.value)}</span>
+              {r.target ? ` / ${g(r.target)}g` : "g"}
+            </span>
+          </div>
+        );
+      })}
+      <div className="flex items-center justify-between text-xs">
+        <span className="tnum text-fiber">Fib {fiberLabel(total.fiber, fiberComplete)}</span>
+        <Link href={`/targets?d=${day}`} className="-my-3 flex min-h-11 items-center px-1 text-ink-dim">
+          {anyTarget ? "Targets ›" : "Set targets ›"}
+        </Link>
+      </div>
     </div>
   );
 }

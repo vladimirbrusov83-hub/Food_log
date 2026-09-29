@@ -224,3 +224,16 @@ export async function updateFood(id: number, f: {
 export async function deleteFood(id: number): Promise<void> {
   await sql`DELETE FROM foods WHERE id = ${id}`;
 }
+
+export type Targets = { protein: number | null; carb: number | null; fat: number | null };
+
+export async function getTargets(): Promise<Targets> {
+  const rows = (await sql`SELECT protein, carb, fat FROM targets WHERE id = 1`) as Targets[];
+  return rows[0] ?? { protein: null, carb: null, fat: null };
+}
+
+export async function saveTargets(t: Targets): Promise<void> {
+  await sql`
+    INSERT INTO targets (id, protein, carb, fat) VALUES (1, ${t.protein}, ${t.carb}, ${t.fat})
+    ON CONFLICT (id) DO UPDATE SET protein = excluded.protein, carb = excluded.carb, fat = excluded.fat`;
+}

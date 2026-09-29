@@ -157,3 +157,15 @@ export async function searchEverything(query: string) {
     off: off.filter((p) => !seen.has(p.barcode)).slice(0, 10),
   };
 }
+
+/** Blank means no target for that macro, not a target of zero. */
+export async function saveTargets(formData: FormData) {
+  const target = (k: string) => {
+    const n = Number(String(formData.get(k) ?? "").trim().replace(",", "."));
+    return String(formData.get(k) ?? "").trim() && Number.isFinite(n) && n > 0 ? n : null;
+  };
+  await db.saveTargets({ protein: target("protein"), carb: target("carb"), fat: target("fat") });
+  revalidatePath("/");
+  const day = String(formData.get("day") ?? "");
+  redirect(day ? `/?d=${day}` : "/");
+}

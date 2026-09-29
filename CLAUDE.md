@@ -17,9 +17,11 @@ of things already decided and traps that look like bugs.
   header is a client component for exactly this reason.
 - **The four standard meals are virtual** until something is logged into them.
   Do not seed `day_meals` rows on page render.
-- **No goals, no targets, no suggestions.** He asked for none: no calorie
-  target, no macro goal bars, no "you have X left", no streaks. The history bar
-  is relative to his own biggest day, which is why it is not a verdict.
+- **Macro targets, and nothing more.** Originally he wanted no targets at all;
+  on 2026-09-29 he asked for protein/carb/fat lines that fill toward daily
+  targets he sets (`/targets`, one-row `targets` table, blank = no target).
+  Still no calorie target, no "you have X left", no streaks, no suggestions.
+  The history bar is relative to his own biggest day, not a target.
 
 ## Traps
 
@@ -51,5 +53,5 @@ as working until it has been tried on a phone over https.
 
 `DATABASE_URL` (Neon pooled, its **own** Neon project — not IronLogWeb's, not
 ClientProgram's) and `APP_PASSCODE`. See `.env.example` and `docs/DEPLOY.md`.
-The GitHub repo is **public**; nothing with a secret in it goes in a tracked
+The GitHub repo is private, but nothing with a secret in it goes in a tracked
 file.

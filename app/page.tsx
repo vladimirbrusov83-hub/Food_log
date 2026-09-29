@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { removeMeal } from "./actions";
-import { getDay } from "@/lib/db";
+import { getDay, getTargets } from "@/lib/db";
 import { isDayString } from "@/lib/day";
 import { forGrams, g, kcal, sumMacros } from "@/lib/macros";
-import { MacroLine, MacroSplit } from "@/components/macro-bar";
+import { MacroTargets } from "@/components/macro-bar";
 import { TodayRedirect } from "@/components/today-redirect";
 import { DayHeader } from "@/components/day-header";
 import { AddMeal, EntryRow } from "@/components/day-controls";
@@ -18,7 +18,7 @@ export default async function DayPage(
   // No date in the URL means the phone has not said what day it is yet.
   if (!isDayString(d)) return <TodayRedirect />;
 
-  const meals = await getDay(d);
+  const [meals, targets] = await Promise.all([getDay(d), getTargets()]);
   const allEntries = meals.flatMap((m) => m.entries);
   const dayTotal = sumMacros(allEntries.map((e) => forGrams(e, e.grams)));
 
@@ -32,8 +32,7 @@ export default async function DayPage(
             <span className="tnum display text-3xl font-semibold">{kcal(dayTotal.kcal)}</span>
             <span className="eyebrow text-ink-dim">kcal</span>
           </div>
-          <MacroSplit total={dayTotal} />
-          <MacroLine total={dayTotal} fiberComplete={dayTotal.fiberComplete} size="lg" />
+          <MacroTargets total={dayTotal} targets={targets} fiberComplete={dayTotal.fiberComplete} day={d} />
         </div>
       </header>
 
