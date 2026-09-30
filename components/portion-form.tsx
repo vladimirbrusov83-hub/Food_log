@@ -180,15 +180,15 @@ export function PortionForm(
 
       {children}
 
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-bg from-60% to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
-        <button
-          type="submit" disabled={!valid}
-          className="press mx-auto flex min-h-14 w-full max-w-md items-center justify-between rounded-2xl bg-accent px-5 text-base font-semibold text-white shadow-float disabled:opacity-40"
-        >
-          <span>{submitLabel}</span>
-          <span className="tnum text-white/80">{kcal(m.kcal)} kcal</span>
-        </button>
-      </div>
+      {/* Right under the amount, not pinned to the bottom edge: he asked for it
+          higher, where the thumb already is after picking a portion. */}
+      <button
+        type="submit" disabled={!valid}
+        className="press flex min-h-14 w-full items-center justify-between rounded-2xl bg-accent px-5 text-base font-semibold text-white shadow-float disabled:opacity-40"
+      >
+        <span>{submitLabel}</span>
+        <span className="tnum text-white/80">{kcal(m.kcal)} kcal</span>
+      </button>
     </form>
   );
 }

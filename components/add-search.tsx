@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { adoptOffProduct, browseStore, quickAdd, searchEverything } from "@/app/actions";
+import { addMany, adoptOffProduct, browseStore, searchEverything } from "@/app/actions";
 import { forGrams, g, kcal, sumMacros } from "@/lib/macros";
 import { dayLabel, toDayString } from "@/lib/day";
 import { portionText } from "@/lib/servings";
-import { STORES, type Food, type Meal, type RecentFood } from "@/lib/types";
+import { STORES, type Food, type Meal, type Portion, type RecentFood } from "@/lib/types";
 import type { OffProduct } from "@/lib/off";
 import { MacroInline } from "./macro-bar";
 import { Icon, LinkButton, List, SectionLabel } from "./ui";
@@ -17,17 +17,27 @@ import { Icon, LinkButton, List, SectionLabel } from "./ui";
  * action; an OFF hit is saved into his own library the moment he picks it, so
  * it is instant the second time.
  *
- * The first tab is the day so far, so he can see what is already in before
- * adding more. It opens on it once the day has anything in it.
+ * Opens on Recent. The Today tab is the day so far, to check what is already in.
+ *
+ * The circle on a row ticks it; tick several and the footer adds them all at
+ * once, each at the portion its row shows. Tapping the row itself still opens
+ * the portion screen for one food.
  */
+
+/** A ticked food and the portion it will go in at. */
+type Ticked = { food: Food; portion: Portion };
 export function AddSearch(
   { day, meal, recent, mine, stores, logged }:
   { day: string; meal: string; recent: RecentFood[]; mine: Food[]; stores: string[]; logged: Meal[] },
 ) {
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<string>(
-    logged.length ? "today" : recent.length || !mine.length ? "recent" : "mine",
-  );
+  const [tab, setTab] = useState<string>(recent.length || !mine.length ? "recent" : "mine");
+  const [picked, setPicked] = useState<Ticked[]>([]);
+  const isPicked = (id: number) => picked.some((p) => p.food.id === id);
+  const toggle = (food: Food, portion: Portion) =>
+    setPicked((list) => list.some((p) => p.food.id === food.id)
+      ? list.filter((p) => p.food.id !== food.id)
+      : [...list, { food, portion }]);
   // "Today" unless the day being filled is another one. Read after mount: the
   // server does not know the phone's date.
   const [dayName, setDayName] = useState("Today");
@@ -106,7 +116,7 @@ export function AddSearch(
             {results.mine.length === 0 ? (
               <Hint>Nothing {store ? `from ${store}` : "in your library"} matches “{query.trim()}”.</Hint>
             ) : (
-              <List>{results.mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
+              <List>{results.mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
             )}
           </section>
 
@@ -134,7 +144,7 @@ export function AddSearch(
         ) : (
           <section>
             <SectionLabel right={<span className="text-xs text-ink-faint">most popular first</span>}>{store}</SectionLabel>
-            <List>{storeFoods[store].map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
+            <List>{storeFoods[store].map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
           </section>
         )
       ) : tab === "today" ? (
@@ -143,14 +153,55 @@ export function AddSearch(
         recent.length === 0 ? (
           <Hint>Foods you log show up here, with the amount you had last time. One tap on + logs it again.</Hint>
         ) : (
-          <List>{recent.map((f) => <RecentRow key={f.id} food={f} href={href(f.id)} day={day} meal={meal} />)}</List>
+          <List>{recent.map((f) => <RecentRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
         )
       ) : mine.length === 0 ? (
         <Hint>Foods you create or scan land here.</Hint>
       ) : (
-        <List>{mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
+        <List>{mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
       )}
+
+      {picked.length > 0 && <AddPicked day={day} meal={meal} picked={picked} onClear={() => setPicked([])} />}
     </div>
+  );
+}
+
+/** The footer for ticked foods: one tap logs them all. */
+function AddPicked({ day, meal, picked, onClear }: { day: string; meal: string; picked: Ticked[]; onClear: () => void }) {
+  const total = picked.reduce((n, p) => n + forGrams(p.food, p.portion.grams).kcal, 0);
+  const items = picked.map((p) => ({ foodId: p.food.id, ...p.portion }));
+  return (
+    <form action={addMany}
+          className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-bg from-60% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] pt-6">
+      <input type="hidden" name="day" value={day} />
+      <input type="hidden" name="meal" value={meal} />
+      <input type="hidden" name="items" value={JSON.stringify(items)} />
+      <div className="mx-auto flex max-w-md items-center gap-2">
+        <button type="button" onClick={onClear}
+                className="press min-h-14 shrink-0 rounded-2xl bg-surface px-4 text-[0.9375rem] font-semibold text-ink-dim shadow-card">
+          Clear
+        </button>
+        <button type="submit"
+                className="press flex min-h-14 min-w-0 flex-1 items-center justify-between gap-2 rounded-2xl bg-accent px-5 text-base font-semibold text-white shadow-float">
+          <span className="truncate">Add {picked.length} to {meal}</span>
+          <span className="tnum shrink-0 text-white/80">{kcal(total)} kcal</span>
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** The round tick on a row. */
+function Tick({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on} aria-label={`${on ? "Untick" : "Tick"} ${label}`}
+            className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
+      <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors ${
+        on ? "border-accent bg-accent text-white" : "border-line text-transparent"
+      }`}>
+        <Icon name="check" className="h-4 w-4" strokeWidth={3} />
+      </span>
+    </button>
   );
 }
 
@@ -224,11 +275,18 @@ function per(food: Food) {
     : { kcal: kcal(food.kcal), unit: "100 g" };
 }
 
-function FoodRow({ food, href }: { food: Food; href: string }) {
+/** What a tick puts in for a food with no history: its first serving, else 100 g. */
+function defaultPortion(food: Food): Portion {
+  const s = food.servings[0];
+  return s ? { grams: s.grams, servingLabel: s.label, servingQty: 1 } : { grams: 100, servingLabel: null, servingQty: null };
+}
+
+function FoodRow({ food, href, picked, onPick }:
+  { food: Food; href: string; picked: boolean; onPick: (f: Food, p: Portion) => void }) {
   const p = per(food);
   return (
-    <li>
-      <Link href={href} className="press flex min-h-16 items-center gap-3 px-5 py-2.5 active:bg-sunken">
+    <li className="flex items-center">
+      <Link href={href} className="press flex min-h-16 min-w-0 flex-1 items-center gap-3 py-2.5 pl-5 pr-1 active:bg-sunken">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.9375rem] font-medium">{food.name}</span>
           <span className="tnum block truncate text-[0.8125rem] text-ink-dim">
@@ -239,12 +297,14 @@ function FoodRow({ food, href }: { food: Food; href: string }) {
           {p.kcal}<span className="ml-0.5 text-xs font-medium text-ink-faint">kcal</span>
         </span>
       </Link>
+      <div className="pr-2"><Tick on={picked} label={food.name} onClick={() => onPick(food, defaultPortion(food))} /></div>
     </li>
   );
 }
 
-/** Tap the row to choose an amount; tap + to log last time's amount straight away. */
-function RecentRow({ food, href, day, meal }: { food: RecentFood; href: string; day: string; meal: string }) {
+/** Tap the row to choose an amount; tick it to add last time's amount with the others. */
+function RecentRow({ food, href, picked, onPick }:
+  { food: RecentFood; href: string; picked: boolean; onPick: (f: Food, p: Portion) => void }) {
   const last = food.last;
   return (
     <li className="flex items-center">
@@ -256,18 +316,7 @@ function RecentRow({ food, href, day, meal }: { food: RecentFood; href: string; 
           </span>
         </span>
       </Link>
-      <form action={quickAdd} className="pr-3">
-        <input type="hidden" name="day" value={day} />
-        <input type="hidden" name="meal" value={meal} />
-        <input type="hidden" name="foodId" value={food.id} />
-        <input type="hidden" name="grams" value={last.grams} />
-        <input type="hidden" name="servingLabel" value={last.servingLabel ?? ""} />
-        <input type="hidden" name="servingQty" value={last.servingQty ?? ""} />
-        <button aria-label={`Add ${food.name}, ${portionText(last)}`}
-                className="press flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent-ink">
-          <Icon name="plus" className="h-5 w-5" strokeWidth={2.4} />
-        </button>
-      </form>
+      <div className="pr-2"><Tick on={picked} label={food.name} onClick={() => onPick(food, last)} /></div>
     </li>
   );
 }

@@ -42,23 +42,24 @@ export async function logFood(formData: FormData) {
   redirect(`/?d=${day}`);
 }
 
-/** The "+" on a recent food: the same portion as last time, no questions. */
-export async function quickAdd(formData: FormData) {
+/**
+ * Several foods ticked on the add screen, each at the portion its row showed:
+ * last time's for a recent food, else its first serving, else 100 g.
+ */
+export async function addMany(formData: FormData) {
   const day = String(formData.get("day"));
   const meal = String(formData.get("meal"));
-  const portion = readPortion(formData);
-  if (!day || !meal || !portion) return;
-  const id = await logPortion(day, meal, Number(formData.get("foodId")), portion);
+  const items = JSON.parse(String(formData.get("items") ?? "[]")) as ({ foodId: number } & Portion)[];
+  if (!day || !meal) return;
+  // In order, so they list in the order he ticked them.
+  for (const it of items) {
+    if (!(it.grams > 0)) continue;
+    await logPortion(day, meal, Number(it.foodId), {
+      grams: it.grams, servingLabel: it.servingLabel ?? null, servingQty: it.servingQty ?? null,
+    });
+  }
   revalidatePath("/");
-  // Back to the add screen, which shows what went in and offers Undo.
-  redirect(`/add?d=${day}&meal=${encodeURIComponent(meal)}${id ? `&added=${id}` : ""}`);
-}
-
-export async function undoQuickAdd(formData: FormData) {
-  await db.deleteEntry(Number(formData.get("entryId")));
-  revalidatePath("/");
-  const day = String(formData.get("day"));
-  redirect(`/add?d=${day}&meal=${encodeURIComponent(String(formData.get("meal")))}`);
+  redirect(`/?d=${day}`);
 }
 
 export async function updateEntry(formData: FormData) {

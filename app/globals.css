@@ -63,15 +63,6 @@ input[type="number"] { -moz-appearance: textfield; }
 @keyframes draw-in { from { stroke-dasharray: 0 var(--c); } }
 .draw-in { animation: draw-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* The "Added" toast: in, hold, out. It carries Undo, so it stays a while. */
-@keyframes toast {
-  0% { opacity: 0; transform: translateY(12px); }
-  6%, 88% { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(12px); visibility: hidden; }
-}
-.toast { animation: toast 6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-  .toast { animation: none; }
 }

@@ -134,7 +134,7 @@ export function FoodForm(
         </div>
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-bg from-60% to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-bg from-60% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] pt-6">
         <button type="submit"
                 className="press mx-auto flex min-h-14 w-full max-w-md items-center justify-center rounded-2xl bg-accent px-5 text-base font-semibold text-white shadow-float">
           {submitLabel}
