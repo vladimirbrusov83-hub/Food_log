@@ -3,24 +3,35 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { adoptOffProduct, browseStore, quickAdd, searchEverything } from "@/app/actions";
-import { forGrams, g, kcal } from "@/lib/macros";
+import { forGrams, g, kcal, sumMacros } from "@/lib/macros";
+import { dayLabel, toDayString } from "@/lib/day";
 import { portionText } from "@/lib/servings";
-import { STORES, type Food, type RecentFood } from "@/lib/types";
+import { STORES, type Food, type Meal, type RecentFood } from "@/lib/types";
 import type { OffProduct } from "@/lib/off";
-import { Icon, List, SectionLabel } from "./ui";
+import { MacroInline } from "./macro-bar";
+import { Icon, LinkButton, List, SectionLabel } from "./ui";
 
 /**
  * Search first, then the two ways to bring in something new, then what he
  * already eats. The search hits the bundled library and Open Food Facts in one
  * action; an OFF hit is saved into his own library the moment he picks it, so
  * it is instant the second time.
+ *
+ * The first tab is the day so far, so he can see what is already in before
+ * adding more. It opens on it once the day has anything in it.
  */
 export function AddSearch(
-  { day, meal, recent, mine, stores }:
-  { day: string; meal: string; recent: RecentFood[]; mine: Food[]; stores: string[] },
+  { day, meal, recent, mine, stores, logged }:
+  { day: string; meal: string; recent: RecentFood[]; mine: Food[]; stores: string[]; logged: Meal[] },
 ) {
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<string>(recent.length || !mine.length ? "recent" : "mine");
+  const [tab, setTab] = useState<string>(
+    logged.length ? "today" : recent.length || !mine.length ? "recent" : "mine",
+  );
+  // "Today" unless the day being filled is another one. Read after mount: the
+  // server does not know the phone's date.
+  const [dayName, setDayName] = useState("Today");
+  useEffect(() => setDayName(dayLabel(day, toDayString(new Date()))), [day]);
   const [results, setResults] = useState<{ mine: Food[]; off: OffProduct[] } | null>(null);
   const [storeFoods, setStoreFoods] = useState<Record<string, Food[]>>({});
   const [pending, start] = useTransition();
@@ -45,7 +56,7 @@ export function AddSearch(
     }
   }, [store, storeFoods]);
 
-  const tabs: [string, string][] = [["recent", "Recent"], ["mine", "My foods"], ...STORES.filter((s) => stores.includes(s)).map((s) => [s, s] as [string, string])];
+  const tabs: [string, string][] = [["today", dayName], ["recent", "Recent"], ["mine", "My foods"], ...STORES.filter((s) => stores.includes(s)).map((s) => [s, s] as [string, string])];
 
   const q = `d=${day}&meal=${encodeURIComponent(meal)}`;
   const href = (foodId: number) => `/add/${foodId}?${q}`;
@@ -126,6 +137,8 @@ export function AddSearch(
             <List>{storeFoods[store].map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
           </section>
         )
+      ) : tab === "today" ? (
+        <DaySoFar day={day} logged={logged} />
       ) : tab === "recent" ? (
         recent.length === 0 ? (
           <Hint>Foods you log show up here, with the amount you had last time. One tap on + logs it again.</Hint>
@@ -137,6 +150,53 @@ export function AddSearch(
       ) : (
         <List>{mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} />)}</List>
       )}
+    </div>
+  );
+}
+
+/** Everything logged on the day, meal by meal, with a Done back to the diary. */
+function DaySoFar({ day, logged }: { day: string; logged: Meal[] }) {
+  const all = logged.flatMap((m) => m.entries.map((e) => forGrams(e, e.grams)));
+  const total = sumMacros(all);
+  return (
+    <div className="space-y-5">
+      {logged.length === 0 ? (
+        <Hint>Nothing logged yet. What you add shows up here.</Hint>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-3xl bg-surface px-5 py-4 shadow-card">
+            <span className="tnum text-[1.0625rem] font-semibold">{kcal(total.kcal)} kcal</span>
+            <MacroInline m={total} />
+          </div>
+          {logged.map((m) => {
+            const mt = sumMacros(m.entries.map((e) => forGrams(e, e.grams)));
+            return (
+              <section key={m.name}>
+                <SectionLabel right={<span className="tnum text-sm text-ink-dim">{kcal(mt.kcal)} kcal</span>}>{m.name}</SectionLabel>
+                <List>
+                  {m.entries.map((e) => {
+                    const em = forGrams(e, e.grams);
+                    return (
+                      <li key={e.id}>
+                        <Link href={`/entry/${e.id}`} className="press flex min-h-16 items-center gap-3 px-5 py-2.5 active:bg-sunken">
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[0.9375rem] font-medium">{e.name}</span>
+                            <span className="tnum block truncate text-[0.8125rem] text-ink-dim">{portionText(e)}</span>
+                          </span>
+                          <span className="tnum shrink-0 text-[0.9375rem] font-semibold">
+                            {kcal(em.kcal)}<span className="ml-0.5 text-xs font-medium text-ink-faint">kcal</span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </List>
+              </section>
+            );
+          })}
+        </>
+      )}
+      <LinkButton href={`/?d=${day}`} variant="primary" className="w-full">Done</LinkButton>
     </div>
   );
 }
