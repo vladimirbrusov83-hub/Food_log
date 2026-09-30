@@ -75,6 +75,12 @@ export async function removeEntry(formData: FormData) {
   if (day) redirect(`/?d=${day}`);
 }
 
+/** The swipe on the day screen: gone, and the page stays where it is. */
+export async function deleteEntryInPlace(entryId: number) {
+  await db.deleteEntry(entryId);
+  revalidatePath("/");
+}
+
 export async function addMeal(formData: FormData) {
   const day = String(formData.get("day"));
   const name = String(formData.get("name") ?? "").trim();

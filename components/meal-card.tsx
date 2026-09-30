@@ -1,22 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { removeMeal } from "@/app/actions";
+import { useState, useTransition } from "react";
+import { deleteEntryInPlace, removeMeal } from "@/app/actions";
 import { forGrams, kcal, sumMacros } from "@/lib/macros";
 import { portionText } from "@/lib/servings";
 import type { Meal } from "@/lib/types";
 import { MacroInline } from "./macro-bar";
+import { SwipeDelete } from "./swipe-delete";
 import { Card, Icon } from "./ui";
 
 /**
  * One meal. Tap the header to fold it; folded, it still shows the meal's
  * calories and fat/carbs/protein. Meals with food in them start open.
+ * A food swipes left to Delete; it goes at once, no confirm.
  */
 export function MealCard({ meal, day, custom }: { meal: Meal; day: string; custom: boolean }) {
-  const empty = meal.entries.length === 0;
-  const [open, setOpen] = useState(!empty);
-  const total = sumMacros(meal.entries.map((e) => forGrams(e, e.grams)));
+  const [open, setOpen] = useState(meal.entries.length > 0);
+  const [swiped, setSwiped] = useState<number | null>(null);
+  // Hidden the moment Delete is tapped; the server catches up behind it.
+  const [gone, setGone] = useState<number[]>([]);
+  const [, start] = useTransition();
+  const entries = meal.entries.filter((e) => !gone.includes(e.id));
+  const empty = entries.length === 0;
+  const total = sumMacros(entries.map((e) => forGrams(e, e.grams)));
+
+  function remove(id: number) {
+    setGone((g) => [...g, id]);
+    setSwiped(null);
+    start(() => deleteEntryInPlace(id));
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -60,22 +73,25 @@ export function MealCard({ meal, day, custom }: { meal: Meal; day: string; custo
 
       {!empty && open && (
         <ul className="divide-y divide-line border-t border-line">
-          {meal.entries.map((e) => {
+          {entries.map((e) => {
             const m = forGrams(e, e.grams);
             return (
               <li key={e.id}>
-                <Link href={`/entry/${e.id}`} className="flex min-h-16 items-center gap-3 px-5 py-2.5 active:bg-sunken">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.9375rem] font-medium">{e.name}</span>
-                    <span className="tnum block truncate text-[0.8125rem] text-ink-dim">
-                      {portionText(e)}{e.brand ? ` · ${e.brand}` : ""}
+                <SwipeDelete label={e.name} open={swiped === e.id}
+                             onOpen={(o) => setSwiped(o ? e.id : null)} onDelete={() => remove(e.id)}>
+                  <Link href={`/entry/${e.id}`} className="flex min-h-16 items-center gap-3 px-5 py-2.5 active:bg-sunken">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.9375rem] font-medium">{e.name}</span>
+                      <span className="tnum block truncate text-[0.8125rem] text-ink-dim">
+                        {portionText(e)}{e.brand ? ` · ${e.brand}` : ""}
+                      </span>
+                      <MacroInline m={m} className="mt-0.5" />
                     </span>
-                    <MacroInline m={m} className="mt-0.5" />
-                  </span>
-                  <span className="tnum shrink-0 text-[0.9375rem] font-semibold">
-                    {kcal(m.kcal)}<span className="ml-0.5 text-xs font-medium text-ink-faint">kcal</span>
-                  </span>
-                </Link>
+                    <span className="tnum shrink-0 text-[0.9375rem] font-semibold">
+                      {kcal(m.kcal)}<span className="ml-0.5 text-xs font-medium text-ink-faint">kcal</span>
+                    </span>
+                  </Link>
+                </SwipeDelete>
               </li>
             );
           })}

@@ -49,6 +49,8 @@ of things already decided and traps that look like bugs.
   Its old `cgi/search.pl` endpoint returns 503 — do not reach for it.
 - `@zxing/browser` (camera loop, `decodeFromConstraints`) is not `zxing-wasm`
   (`readBarcodes` over ImageData, no camera). The fallback needs the former.
+- A food on the day screen swipes left to Delete (`components/swipe-delete.tsx`,
+  ported from IronLog). Its comment lists the three gesture traps; keep them.
 - Running `next build` while `npm run dev` is up deletes `.next` underneath it
   and the dev server then 500s on every request. Stop it, `rm -rf .next`,
   restart.
