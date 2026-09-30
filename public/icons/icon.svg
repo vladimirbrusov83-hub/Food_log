@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1f7a55"/>
+  <!-- Plate with a three-part macro split: fat, carbs, protein -->
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="44"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#f08a6c" stroke-width="44"
+          stroke-dasharray="270 673" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#f2b640" stroke-width="44"
+          stroke-dasharray="300 643" stroke-dashoffset="-290" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#7fb4f5" stroke-width="44"
+          stroke-dasharray="313 630" stroke-dashoffset="-610" transform="rotate(-90 256 256)"/>
+  <circle cx="256" cy="256" r="84" fill="#ffffff"/>
+</svg>

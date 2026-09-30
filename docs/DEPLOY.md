@@ -62,8 +62,13 @@ Both paths matter. The second one is most of American groceries.
 
 ### 5. Add it to the home screen
 
-Safari → Share → Add to Home Screen. It opens without browser chrome; the
-manifest and theme colour are already set for it.
+Safari → Share → Add to Home Screen. It opens full-screen with its own icon
+(`app/manifest.ts`, icons in `public/icons/`, rebuilt from `icon.svg` by
+`node scripts/build-icons.mjs`). The home-screen app keeps its own cookies, so
+it asks for the passcode once, then remembers it for a year.
+
+`public/sw.js` caches only Next's static files and shows `offline.html` when
+there is no network. It never caches pages — the diary is live data.
 
 ---
 

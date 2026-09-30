@@ -1,11 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Nav } from "@/components/nav";
+import { SwRegister } from "@/components/sw-register";
 
 export const metadata: Metadata = {
   title: "FoodLog",
   description: "A food log for one person.",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "FoodLog" },
+  icons: {
+    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192" }],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -31,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Nav />
+        <SwRegister />
       </body>
     </html>
   );

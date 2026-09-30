@@ -12,7 +12,8 @@ export async function middleware(req: NextRequest) {
 }
 
 /* Everything is behind the gate — unlike ClientProgram, no page here is public.
-   The matcher excludes Next's own asset routes and the favicon only. */
+   The matcher excludes Next's own asset routes and the PWA files (manifest,
+   icons, service worker, offline page) — the phone fetches those without the cookie. */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon.svg).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|sw.js|offline.html).*)"],
 };
