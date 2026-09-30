@@ -7,9 +7,9 @@ import { Icon } from "./ui";
 export const MACROS = [
   // `ink` is the same hue dark enough to read as text on white.
   // Fat, carbs, protein: the order he reads them in, everywhere in the app.
-  { key: "fat", label: "Fat", short: "F", color: "var(--color-fat)", ink: "oklch(0.55 0.16 35)", kcalPerG: 9 },
-  { key: "carb", label: "Carbs", short: "C", color: "var(--color-carb)", ink: "oklch(0.58 0.13 70)", kcalPerG: 4 },
-  { key: "protein", label: "Protein", short: "P", color: "var(--color-protein)", ink: "oklch(0.5 0.15 255)", kcalPerG: 4 },
+  { key: "fat", label: "Fat", short: "Fat", color: "var(--color-fat)", ink: "oklch(0.55 0.16 35)", kcalPerG: 9 },
+  { key: "carb", label: "Carbs", short: "Carb", color: "var(--color-carb)", ink: "oklch(0.58 0.13 70)", kcalPerG: 4 },
+  { key: "protein", label: "Protein", short: "Protein", color: "var(--color-protein)", ink: "oklch(0.5 0.15 255)", kcalPerG: 4 },
 ] as const;
 
 /**
@@ -105,10 +105,10 @@ export function MacroTargets(
   );
 }
 
-/** "F 8  C 30  P 24", with the letters in their colours. For rows and cards. */
+/** "Fat 8  Carb 30  Protein 24", with the names in their colours. For rows and cards. */
 export function MacroInline({ m, className = "" }: { m: Macros; className?: string }) {
   return (
-    <span className={`tnum inline-flex gap-2 text-xs text-ink-dim ${className}`}>
+    <span className={`tnum inline-flex flex-wrap gap-x-2 text-xs text-ink-dim ${className}`}>
       {MACROS.map((x) => (
         <span key={x.key}>
           <span className="font-semibold" style={{ color: x.ink }}>{x.short}</span> {g(m[x.key])}
