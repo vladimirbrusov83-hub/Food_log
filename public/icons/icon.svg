@@ -1,12 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1f7a55"/>
-  <!-- Plate with a three-part macro split: fat, carbs, protein -->
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="44"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#f08a6c" stroke-width="44"
-          stroke-dasharray="270 673" transform="rotate(-90 256 256)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#f2b640" stroke-width="44"
-          stroke-dasharray="300 643" stroke-dashoffset="-290" transform="rotate(-90 256 256)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#7fb4f5" stroke-width="44"
-          stroke-dasharray="313 630" stroke-dashoffset="-610" transform="rotate(-90 256 256)"/>
-  <circle cx="256" cy="256" r="84" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs><radialGradient id="glow" cx="50%" cy="0%" r="90%">
+    <stop offset="0" stop-color="#34c585" stop-opacity="0.22"/><stop offset="1" stop-color="#34c585" stop-opacity="0"/>
+  </radialGradient></defs>
+  <rect width="512" height="512" rx="112" fill="#0b0b0c"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+  <g fill="#34c585" transform="translate(256 256) scale(1) translate(-256 -256)">
+    <rect x="146" y="112" width="20" height="116" rx="10"/>
+    <rect x="182" y="112" width="20" height="116" rx="10"/>
+    <rect x="218" y="112" width="20" height="116" rx="10"/>
+    <rect x="146" y="196" width="92" height="56" rx="26"/>
+    <rect x="172" y="236" width="40" height="164" rx="16"/>
+    <path d="M318 128 Q 318 112 334 116 C 378 132, 382 214, 362 280 L 318 280 Z"/>
+    <rect x="318" y="248" width="44" height="152" rx="16"/>
+  </g>
 </svg>
