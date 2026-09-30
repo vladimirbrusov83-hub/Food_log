@@ -51,6 +51,10 @@ of things already decided and traps that look like bugs.
   (`readBarcodes` over ImageData, no camera). The fallback needs the former.
 - A food on the day screen swipes left to Delete (`components/swipe-delete.tsx`,
   ported from IronLog). Its comment lists the three gesture traps; keep them.
+  Press-and-hold (450 ms) on the same row lifts it to drag onto another meal
+  (`moveEntryToMeal`); the drop target is found by `elementFromPoint` on
+  `[data-meal]`, so the cards share no state. Delete and move hide the row at
+  once and put it back if the action throws.
 - Running `next build` while `npm run dev` is up deletes `.next` underneath it
   and the dev server then 500s on every request. Stop it, `rm -rf .next`,
   restart.

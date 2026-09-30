@@ -63,6 +63,10 @@ input[type="number"] { -moz-appearance: textfield; }
 @keyframes draw-in { from { stroke-dasharray: 0 var(--c); } }
 .draw-in { animation: draw-in 800ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* A meal card with a dragged food over it. */
+.drop-card { transition: box-shadow 120ms ease, background-color 120ms ease; }
+.drop-card[data-drop] { background: var(--color-accent-soft); box-shadow: 0 0 0 2px var(--color-accent); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

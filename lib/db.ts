@@ -176,6 +176,12 @@ export async function deleteEntry(entryId: number): Promise<void> {
   await sql`DELETE FROM entries WHERE id = ${entryId}`;
 }
 
+/** Into another meal on the same day. The entry keeps its own macro snapshot. */
+export async function moveEntry(entryId: number, day: string, mealName: string): Promise<void> {
+  const mealId = await findOrCreateMeal(day, mealName);
+  await sql`UPDATE entries SET day_meal_id = ${mealId} WHERE id = ${entryId}`;
+}
+
 export async function deleteMeal(mealId: number): Promise<void> {
   await sql`DELETE FROM day_meals WHERE id = ${mealId}`;
 }

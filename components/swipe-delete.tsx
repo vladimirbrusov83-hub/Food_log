@@ -7,6 +7,15 @@ import { Icon } from "./ui";
 const REVEAL = 88;  // width of the Delete button
 const OPEN_AT = 44; // drag past this and it snaps open instead of back
 const SLOP = 8;     // px before a gesture is judged horizontal or vertical
+const HOLD_MS = 450; // press this long without moving and the row lifts to be dragged
+
+/** Press-and-hold handlers: the row is lifted and follows the finger until it is let go. */
+export type Hold = {
+  start: (x: number, y: number) => void;
+  move: (x: number, y: number) => void;
+  end: (x: number, y: number) => void;
+  cancel: () => void;
+};
 
 /**
  * A row that slides left to uncover Delete. Ported from IronLog's SwipeDelete,
@@ -19,10 +28,17 @@ const SLOP = 8;     // px before a gesture is judged horizontal or vertical
  *   handlers stop arriving once the row slides out from under the finger.
  * - `touch-action: pan-y`, never `none`, so the day still scrolls under a
  *   finger that starts on a row. The axis is decided in the first 8px.
+ *
+ * With `hold`, pressing still for 450 ms lifts the row instead (drag to
+ * another meal). From then on touchmove is blocked so the page does not
+ * scroll under the drag, and the click that ends it is eaten like a swipe's.
  */
 export function SwipeDelete(
-  { label, open, onOpen, onDelete, children }:
-  { label: string; open: boolean; onOpen: (open: boolean) => void; onDelete: () => void; children: ReactNode },
+  { label, open, onOpen, onDelete, hold, children }:
+  {
+    label: string; open: boolean; onOpen: (open: boolean) => void; onDelete: () => void;
+    hold?: Hold; children: ReactNode;
+  },
 ) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -36,13 +52,21 @@ export function SwipeDelete(
     if (e.button > 0) return;
     const startX = e.clientX;
     const startY = e.clientY;
-    let axis: "?" | "x" = "?";
+    let axis: "?" | "x" | "hold" = "?";
+    const timer = hold && !open ? setTimeout(() => {
+      axis = "hold";
+      moved.current = true;
+      navigator.vibrate?.(10);
+      hold.start(startX, startY);
+    }, HOLD_MS) : undefined;
 
     function move(ev: PointerEvent) {
+      if (axis === "hold") return hold!.move(ev.clientX, ev.clientY);
       const dxRaw = ev.clientX - startX;
       const dyRaw = ev.clientY - startY;
       if (axis === "?") {
         if (Math.abs(dxRaw) < SLOP && Math.abs(dyRaw) < SLOP) return;
+        clearTimeout(timer);
         // Vertical wins: it is a scroll, and this gesture is over for us.
         if (Math.abs(dyRaw) > Math.abs(dxRaw)) return end();
         axis = "x";
@@ -56,15 +80,18 @@ export function SwipeDelete(
     // Without preventing touchmove, Chromium hands the horizontal gesture to
     // the scroller and fires pointercancel.
     function block(ev: TouchEvent) {
-      if (axis === "x" && ev.cancelable) ev.preventDefault();
+      if ((axis === "x" || axis === "hold") && ev.cancelable) ev.preventDefault();
     }
 
     function up(ev: PointerEvent) {
       if (axis === "x") onOpen(ev.clientX - startX + offset < -OPEN_AT);
+      if (axis === "hold") { axis = "?"; hold!.end(ev.clientX, ev.clientY); }
       end();
     }
 
     function end() {
+      clearTimeout(timer);
+      if (axis === "hold") hold!.cancel();
       window.removeEventListener("pointermove", move);
       window.removeEventListener("touchmove", block);
       window.removeEventListener("pointerup", up);
@@ -95,6 +122,7 @@ export function SwipeDelete(
       <div
         onPointerDown={down}
         onDragStart={(e) => e.preventDefault()}
+        onContextMenu={(e) => hold && e.preventDefault()}
         onClickCapture={(e) => {
           // A swipe ends in a click on whatever was under the finger. Eat it,
           // and when the row is open a plain tap closes it instead.
@@ -107,8 +135,9 @@ export function SwipeDelete(
           transform: `translate3d(${x}px,0,0)`,
           transition: dragging ? "none" : "transform 220ms ease",
           touchAction: "pan-y",
+          WebkitTouchCallout: "none",
         }}
-        className="relative bg-surface"
+        className="relative select-none bg-surface"
       >
         {children}
       </div>

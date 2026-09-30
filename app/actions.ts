@@ -82,6 +82,12 @@ export async function deleteEntryInPlace(entryId: number) {
   revalidatePath("/");
 }
 
+/** A food dragged onto another meal on the day screen. */
+export async function moveEntryToMeal(entryId: number, day: string, meal: string) {
+  await db.moveEntry(entryId, day, meal);
+  revalidatePath("/");
+}
+
 export async function addMeal(formData: FormData) {
   const day = String(formData.get("day"));
   const name = String(formData.get("name") ?? "").trim();
