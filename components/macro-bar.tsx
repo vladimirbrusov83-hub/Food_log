@@ -108,10 +108,11 @@ export function MacroTargets(
 /** "Fat 8  Carb 30  Protein 24", with the names in their colours. For rows and cards. */
 export function MacroInline({ m, className = "" }: { m: Macros; className?: string }) {
   return (
-    <span className={`tnum inline-flex flex-wrap gap-x-2 text-xs text-ink-dim ${className}`}>
+    <span className={`tnum inline-flex flex-wrap gap-x-2.5 text-[0.8125rem] ${className}`}>
       {MACROS.map((x) => (
         <span key={x.key}>
-          <span className="font-semibold" style={{ color: x.ink }}>{x.short}</span> {g(m[x.key])}
+          <span className="font-semibold" style={{ color: x.ink }}>{x.short}</span>{" "}
+          <span className="font-semibold text-ink">{g(m[x.key])}</span>
         </span>
       ))}
     </span>
