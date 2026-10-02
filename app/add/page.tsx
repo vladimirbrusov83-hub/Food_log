@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getDay, getLoadedStores, getMyFoods, getRecentFoods } from "@/lib/db";
+import { getDay, getMyFoods, getRecentFoods } from "@/lib/db";
 import { isDayString } from "@/lib/day";
 import { AddSearch } from "@/components/add-search";
 import { Empty, TopBar } from "@/components/ui";
@@ -15,8 +15,8 @@ export default async function AddPage(
   }
 
   // He eats the same things. After a week or two the Recent list is the whole app.
-  const [recent, mine, stores, meals] = await Promise.all([
-    getRecentFoods(), getMyFoods(), getLoadedStores(), getDay(d),
+  const [recent, mine, meals] = await Promise.all([
+    getRecentFoods(), getMyFoods(), getDay(d),
   ]);
   // What is already in the day, the meal being added to first.
   const logged = meals
@@ -32,7 +32,7 @@ export default async function AddPage(
                 </Link>
               } />
 
-      <AddSearch day={d} meal={meal} recent={recent} mine={mine} stores={stores} logged={logged} />
+      <AddSearch day={d} meal={meal} recent={recent} mine={mine} logged={logged} />
     </main>
   );
 }

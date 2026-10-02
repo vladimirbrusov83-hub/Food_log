@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { addMany, adoptOffProduct, browseStore, searchEverything } from "@/app/actions";
+import { addMany, adoptOffProduct, searchEverything } from "@/app/actions";
 import { forGrams, g, kcal, sumMacros } from "@/lib/macros";
 import { dayLabel, toDayString } from "@/lib/day";
 import { portionText } from "@/lib/servings";
-import { STORES, type Food, type Meal, type Portion, type RecentFood } from "@/lib/types";
+import { type Food, type Meal, type Portion, type RecentFood } from "@/lib/types";
 import type { OffProduct } from "@/lib/off";
 import { MacroInline } from "./macro-bar";
 import { Icon, LinkButton, List, SectionLabel } from "./ui";
@@ -27,8 +27,8 @@ import { Icon, LinkButton, List, SectionLabel } from "./ui";
 /** A ticked food and the portion it will go in at. */
 type Ticked = { food: Food; portion: Portion };
 export function AddSearch(
-  { day, meal, recent, mine, stores, logged }:
-  { day: string; meal: string; recent: RecentFood[]; mine: Food[]; stores: string[]; logged: Meal[] },
+  { day, meal, recent, mine, logged }:
+  { day: string; meal: string; recent: RecentFood[]; mine: Food[]; logged: Meal[] },
 ) {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<string>(recent.length || !mine.length ? "recent" : "mine");
@@ -43,30 +43,19 @@ export function AddSearch(
   const [dayName, setDayName] = useState("Today");
   useEffect(() => setDayName(dayLabel(day, toDayString(new Date()))), [day]);
   const [results, setResults] = useState<{ mine: Food[]; off: OffProduct[] } | null>(null);
-  const [storeFoods, setStoreFoods] = useState<Record<string, Food[]>>({});
   const [pending, start] = useTransition();
-  const store = (STORES as readonly string[]).includes(tab) ? tab : null;
 
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) { setResults(null); return; }
-    // Typed fast, searched once: 250ms after the last keystroke. A store tab narrows it.
+    // Typed fast, searched once: 250ms after the last keystroke.
     const t = setTimeout(() => {
-      start(async () => setResults(await searchEverything(q, store)));
+      start(async () => setResults(await searchEverything(q)));
     }, 250);
     return () => clearTimeout(t);
-  }, [query, store]);
+  }, [query]);
 
-  useEffect(() => {
-    if (store && !storeFoods[store]) {
-      start(async () => {
-        const foods = await browseStore(store);
-        setStoreFoods((s) => ({ ...s, [store]: foods }));
-      });
-    }
-  }, [store, storeFoods]);
-
-  const tabs: [string, string][] = [["today", dayName], ["recent", "Recent"], ["mine", "My foods"], ...STORES.filter((s) => stores.includes(s)).map((s) => [s, s] as [string, string])];
+  const tabs: [string, string][] = [["today", dayName], ["recent", "Recent"], ["mine", "My foods"]];
 
   const q = `d=${day}&meal=${encodeURIComponent(meal)}`;
   const href = (foodId: number) => `/add/${foodId}?${q}`;
@@ -78,7 +67,7 @@ export function AddSearch(
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={store ? `Search ${store}` : "Search foods"}
+          placeholder="Search foods"
           type="search"
           // No autoFocus: on iOS it throws the keyboard up over the recent list,
           // which is the part he wants most of the time.
@@ -112,9 +101,9 @@ export function AddSearch(
       {results !== null ? (
         <>
           <section>
-            <SectionLabel>{store ?? "Library"}</SectionLabel>
+            <SectionLabel>Library</SectionLabel>
             {results.mine.length === 0 ? (
-              <Hint>Nothing {store ? `from ${store}` : "in your library"} matches “{query.trim()}”.</Hint>
+              <Hint>Nothing in your library matches “{query.trim()}”.</Hint>
             ) : (
               <List>{results.mine.map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
             )}
@@ -136,17 +125,6 @@ export function AddSearch(
             <Icon name="plus" className="h-4 w-4" /> Create “{query.trim()}” yourself
           </Link>
         </>
-      ) : store ? (
-        !storeFoods[store] ? (
-          <Hint>Loading {store}…</Hint>
-        ) : storeFoods[store].length === 0 ? (
-          <Hint>No {store} products yet.</Hint>
-        ) : (
-          <section>
-            <SectionLabel right={<span className="text-xs text-ink-faint">most popular first</span>}>{store}</SectionLabel>
-            <List>{storeFoods[store].map((f) => <FoodRow key={f.id} food={f} href={href(f.id)} picked={isPicked(f.id)} onPick={toggle} />)}</List>
-          </section>
-        )
       ) : tab === "today" ? (
         <DaySoFar day={day} logged={logged} />
       ) : tab === "recent" ? (
