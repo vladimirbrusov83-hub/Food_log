@@ -30,6 +30,30 @@ type Phase =
 type Detector = { detect: (s: CanvasImageSource) => Promise<{ rawValue: string }[]> };
 const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
 
+/** Back camera at a real resolution: the default 640×480 is too coarse to read
+ *  a barcode unless the box is right against the lens. */
+const CAMERA: MediaStreamConstraints = {
+  video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+};
+
+/**
+ * Phones' main lenses cannot focus closer than ~10–15 cm, which is why a
+ * barcode had to be held far away. A little zoom lets the pack sit at a normal
+ * distance and still fill the frame. Both settings are skipped where the
+ * browser does not offer them.
+ */
+async function tuneCamera(stream: MediaStream) {
+  const track = stream.getVideoTracks()[0];
+  if (!track?.getCapabilities) return;
+  const caps = track.getCapabilities() as MediaTrackCapabilities & {
+    zoom?: { min: number; max: number }; focusMode?: string[];
+  };
+  const advanced: Record<string, unknown>[] = [];
+  if (caps.focusMode?.includes("continuous")) advanced.push({ focusMode: "continuous" });
+  if (caps.zoom && caps.zoom.max >= 1.5) advanced.push({ zoom: Math.min(2, caps.zoom.max) });
+  if (advanced.length) await track.applyConstraints({ advanced } as MediaTrackConstraints).catch(() => {});
+}
+
 export function Scanner({ day, meal }: { day: string; meal: string }) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -79,9 +103,8 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
         .BarcodeDetector;
 
       if (BD) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-        });
+        const stream = await navigator.mediaDevices.getUserMedia(CAMERA);
+        void tuneCamera(stream);
         video.srcObject = stream;
         await video.play();
 
@@ -113,10 +136,11 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
       // picks first, which on a phone is usually the selfie one. Ask for the
       // back camera by constraint instead; the controls object is the same.
       const controls = await reader.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } } }, video,
+        CAMERA, video,
         (result) => { if (result) void handleCode(result.getText()); },
       );
       stopRef.current = () => controls.stop();
+      if (video.srcObject instanceof MediaStream) void tuneCamera(video.srcObject);
     } catch (err) {
       const name = (err as { name?: string })?.name;
       setPhase({
@@ -130,7 +154,13 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
     }
   }, [handleCode]);
 
-  useEffect(() => stop, [stop]);
+  // "Scan barcode" already said what he wants — the camera starts on arrival.
+  // Run once; `start` changes identity with handleCode but must not restart.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!started.current) { started.current = true; void start(); }
+    return stop;
+  }, [start, stop]);
 
   if (phase.k === "unknown") {
     return <UnknownBarcode barcode={phase.barcode} day={day} meal={meal} />;
@@ -138,7 +168,7 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-3xl bg-black shadow-card">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-black shadow-card">
         <video
           ref={videoRef}
           playsInline
@@ -146,11 +176,11 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
           autoPlay
           className="h-full w-full object-cover"
         />
-        {/* A window to aim through. Barcodes are wide and short. */}
-        <div className="pointer-events-none absolute inset-x-6 top-1/2 h-28 -translate-y-1/2 rounded-2xl border-2 border-white/80" />
+        {/* A guide, not a crop — the whole frame is read. Wide, like a barcode. */}
+        <div className="pointer-events-none absolute inset-x-4 inset-y-[22%] rounded-2xl border-2 border-white/80" />
         {phase.k === "idle" && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 px-6 text-center text-sm text-white/85">
-            Point the camera at the barcode on the package.
+            Starting camera…
           </div>
         )}
         {phase.k === "looking" && (
@@ -160,11 +190,6 @@ export function Scanner({ day, meal }: { day: string; meal: string }) {
         )}
       </div>
 
-      {phase.k === "idle" && (
-        <Button onClick={start} variant="primary" className="h-14 w-full text-base">
-          Start camera
-        </Button>
-      )}
       {phase.k === "error" && (
         <Card className="p-4">
           <p className="text-sm text-bad">{phase.message}</p>
