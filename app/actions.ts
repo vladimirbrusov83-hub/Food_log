@@ -145,10 +145,20 @@ export async function saveFood(formData: FormData) {
   redirect("/foods");
 }
 
+/** Where an edit came from — the day, or the add screen — so Save goes back there. Paths in this app only. */
+function safeBack(v: FormDataEntryValue | null): string | null {
+  const s = String(v ?? "");
+  return s.startsWith("/") && !s.startsWith("//") ? s : null;
+}
+
 export async function editFood(formData: FormData) {
-  await db.updateFood(Number(formData.get("foodId")), readFoodForm(formData));
+  const id = Number(formData.get("foodId"));
+  await db.updateFood(id, readFoodForm(formData));
+  // Only when he ticked it: a wrong label is fixed everywhere, a recipe change is not.
+  if (formData.get("fixLogged") === "on") await db.resnapshotEntries(id);
+  revalidatePath("/");
   revalidatePath("/foods");
-  redirect("/foods");
+  redirect(safeBack(formData.get("back")) ?? "/foods");
 }
 
 export async function removeFood(formData: FormData) {

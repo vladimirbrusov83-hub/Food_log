@@ -15,7 +15,7 @@ let nextKey = 1;
  * stores per 100 g either way.
  */
 export function FoodForm(
-  { action, hidden, food, submitLabel, nameAutoFocus = true, padBottom = true }:
+  { action, hidden, food, submitLabel, nameAutoFocus = true, padBottom = true, children }:
   {
     action: (fd: FormData) => void | Promise<void>;
     hidden: Record<string, string | number>;
@@ -24,6 +24,8 @@ export function FoodForm(
     nameAutoFocus?: boolean;
     /** Off when the page puts something under the form, such as Delete. */
     padBottom?: boolean;
+    /** Extra fields inside the form, under the nutrition card. */
+    children?: React.ReactNode;
   },
 ) {
   const [rows, setRows] = useState<Row[]>(() =>
@@ -133,6 +135,8 @@ export function FoodForm(
           ))}
         </div>
       </Card>
+
+      {children}
 
       <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-bg from-60% to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1.75rem)] pt-6">
         <button type="submit"

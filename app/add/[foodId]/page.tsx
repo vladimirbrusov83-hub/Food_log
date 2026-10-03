@@ -28,7 +28,7 @@ export default async function PortionPage({
         sub={`Add to ${meal}`}
         title={food.name}
         action={food.source !== "usda" && (
-          <Link href={`/foods/${food.id}`} className="press flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-accent-ink">
+          <Link href={`/foods/${food.id}?back=${encodeURIComponent(`/add/${food.id}?d=${d}&meal=${encodeURIComponent(meal)}`)}`} className="press flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-accent-ink">
             Edit
           </Link>
         )}

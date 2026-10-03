@@ -326,6 +326,27 @@ export async function updateFood(id: number, f: {
      WHERE id = ${id}`;
 }
 
+/** How many logged entries still point at this food — the edit screen's "also fix" count. */
+export async function countEntriesForFood(id: number): Promise<number> {
+  const [r] = (await sql`SELECT count(*)::int AS n FROM entries WHERE food_id = ${id}`) as { n: number }[];
+  return r?.n ?? 0;
+}
+
+/**
+ * The one deliberate exception to the snapshot rule: he ticked "also fix what's
+ * already logged", because the numbers were wrong rather than changed. Grams and
+ * serving stay; only the per-100 g numbers and the name are re-copied.
+ */
+export async function resnapshotEntries(foodId: number): Promise<void> {
+  await sql`
+    UPDATE entries e
+       SET name = f.name, brand = f.brand, kcal_100g = f.kcal_100g,
+           protein_100g = f.protein_100g, carb_100g = f.carb_100g,
+           fat_100g = f.fat_100g, fiber_100g = f.fiber_100g
+      FROM foods f
+     WHERE f.id = ${foodId} AND e.food_id = f.id`;
+}
+
 export async function deleteFood(id: number): Promise<void> {
   await sql`DELETE FROM foods WHERE id = ${id}`;
 }

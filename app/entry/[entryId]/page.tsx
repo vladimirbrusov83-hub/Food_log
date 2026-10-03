@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { removeEntry, updateEntry } from "@/app/actions";
 import { getEntry, getFood } from "@/lib/db";
@@ -18,7 +19,16 @@ export default async function EntryPage({ params }: { params: Promise<{ entryId:
 
   return (
     <main className="mx-auto max-w-md px-4">
-      <TopBar back={`/?d=${entry.day}`} close sub={entry.meal} title={entry.name} />
+      <TopBar
+        back={`/?d=${entry.day}`} close sub={entry.meal} title={entry.name}
+        action={food && food.source !== "usda" && (
+          // Wrong numbers from a scan: fix the food, and by default this entry with it.
+          <Link href={`/foods/${food.id}?back=${encodeURIComponent(`/?d=${entry.day}`)}`}
+                className="press flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-accent-ink">
+            Edit food
+          </Link>
+        )}
+      />
       {entry.brand && <p className="-mt-1 mb-3 px-1 text-sm text-ink-dim">{entry.brand}</p>}
       <div className="pt-2">
         <PortionForm

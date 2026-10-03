@@ -8,7 +8,11 @@ of things already decided and traps that look like bugs.
 
 - **Grams are canonical, and entries carry a macro snapshot.** Editing a food
   must never alter an entry already logged. If a screen starts joining `entries`
-  to `foods` for its numbers, that is the bug.
+  to `foods` for its numbers, that is the bug. **One opt-in exception**
+  (2026-10-03, his ask after a scan came in at 1000+ kcal a serving): the edit
+  screen has an "Also fix the N times it's already logged" box
+  (`resnapshotEntries`). It is ticked by default only when he arrived from a
+  logged entry or the add screen (`?back=`); from My foods it starts unticked.
 - **`fiber_100g` is nullable.** Null means "not known", not zero. Never coalesce
   it to 0 in SQL or TypeScript. `sumMacros` returns `fiberComplete`, and the UI
   renders `12g+` for an incomplete total.
